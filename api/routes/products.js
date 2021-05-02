@@ -4,28 +4,37 @@ const Product = require("../models/Product");
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Product model schema paths excluding only those are prefixed with an '_' .
-const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).filter(item => ! /^_/.test(item)) ;
+const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).filter(item => ! /^_/.test(item));
 
-
+// GET on FQDN/products OR FQDN/products/
 router.get("/",(req,res,next) => {
 
    ( 
        async  () => {
-        const docs =  await Product.find({}).select("-__v").lean().exec() ;
-        res.status(200).json(docs);
-
+        
+        const products =  await Product.find().select("-__v").lean().exec() ;
+        res.status(200).json(products);
+        
         }
     )
     ().catch(next);
 
 });
 
+// POST on FQDN/products OR FQDN/products/
  router.post("/" , (req , res , next) => {
+     
+    const reqBodyProperties = Object.getOwnPropertyNames(req.body).filter(item => ! /^_/.test(item));
 
+    //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
+      if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
+         throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
+    
     const newProduct = {
         _id : new ObjectId()
     };        
    
+    //Populating the newProduct with values from the request body that matches the schema paths and ignoring other values .
     schemaPaths.forEach(item => {
 
         if(  req.body[item] != undefined )
@@ -34,19 +43,27 @@ router.get("/",(req,res,next) => {
 
     (
        async () => { 
-           const product = await new Product(newProduct).save();
+           const product = await new Product(newProduct).save({select : {__v : -1 }});
            res.status(201).json(product);
     })()
     .catch(next);
 
+  
+
 });
 
+// PUT on FQDN/products/ID .
 router.put("/:id", (req , res , next) => {
 
     const productId = req.params.id ;
     
+    //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
     if(! ObjectId.isValid(productId) )
         throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+
+     //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
+    if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
+        throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
 
     (
         async () => {
@@ -74,6 +91,31 @@ router.put("/:id", (req , res , next) => {
 
 
             res.status(201).json(updatedProduct);
+        }
+    )
+    ().catch(next);
+
+} );
+
+
+// DELETE on FQDN/products/ID .
+router.delete("/:id", (req , res , next) => {
+
+    const productId = req.params.id ;
+    
+    //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+    if(! ObjectId.isValid(productId) )
+        throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+
+    (
+        async () => {
+
+           const deletedProduct = await Product.findByIdAndRemove(productId).exec();
+
+           if(deletedProduct == null)
+            throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
+
+            res.status(201).json(deletedProduct);
         }
     )
     ().catch(next);

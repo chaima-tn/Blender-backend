@@ -47,7 +47,7 @@ async function start() {
 
     //Routes .
 
-    app.use("/products",require("./api/routes/products"));
+    app.use("/products", require("./api/routes/ProductsRouter") );
 
 
     //Requested resource does not match any route .

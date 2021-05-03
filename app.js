@@ -1,13 +1,17 @@
 
-const express = require("express");
+const express = require('express');
 const app = express();
-const morgan = require("morgan");
-const mongoose = require("mongoose");
-
+const morgan = require('morgan');
+const mongoose = require('mongoose');
 mongoose.Promise = global.Promise; //Setting the mongoose promises to JS global promises .
 
-const user = process.env.DB_USER || {username : "blender" , password : "BzlbGQaWYeoG2jbC"}; //DB user .
-const db = process.env.DB_NAME || "blender"; //DB name .
+//Routers
+const productsRouter = require('./api/routes/ProductsRouter');
+const storesRouter = require('./api/routes/StoresRouter');
+
+//DB
+const user = process.env.DB_USER || {username : 'blender' , password : 'BzlbGQaWYeoG2jbC'}; //DB user .
+const db = process.env.DB_NAME || 'blender'; //DB name .
 
 const uri = `mongodb+srv://${encodeURIComponent(user.username)}:${encodeURIComponent(user.password)}@blender.u1jxs.mongodb.net/${encodeURIComponent(db)}?retryWrites=true&w=majority`;
 
@@ -26,7 +30,7 @@ async function start() {
 
     //Middlewares
 
-    app.use(morgan("dev")); //Http request Logger .
+    app.use(morgan('dev')); //Http request Logger .
     app.use(express.json()); //JSON parser .
     app.use('/uploads', express.static('uploads')); //uploads is a static folder .
 
@@ -47,8 +51,8 @@ async function start() {
 
     //Routes .
 
-    app.use("/products",require("./api/routes/products"));
-
+    app.use("/products", productsRouter );
+    app.use("/stores",storesRouter);
 
     //Requested resource does not match any route .
     app.use((req, res, next) => {

@@ -1,29 +1,17 @@
 
-const Product = require("../models/Product");
-const Store = require('../models/Store');
+const Store = require("../models/Store");
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
-// Forms an array of all the Product model schema paths excluding only those are prefixed with an '_' .
-const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).filter(item => ! /^_/.test(item));
-
-   
-const updateOps = {
-    useFindAndModify : false ,
-    runValidators : true ,
-    new :true
-    };
-         
-const deleteOps  = {
-    useFindAndModify : false
-    };
+// Forms an array of all the Store model schema paths excluding only those are prefixed with an '_' .
+const schemaPaths = Object.getOwnPropertyNames(Store.prototype.schema.paths).filter(item => ! /^_/.test(item));
 
 module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
          
-         const products =  await Product.find().select("-__v").populate('store',"-__v").lean().exec() ;
-         res.status(200).json(products);
+         const stores =  await Store.find().select("-__v").populate('products',"-__v").lean().exec() ;
+         res.status(200).json(stores);
          
          }
      )
@@ -38,36 +26,24 @@ module.exports.post = (req , res , next) => {
       if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
          throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
     
-    const newProduct = {
+    const newStore = {
         _id : req.id || new ObjectId() 
     };      
 
     if(req.file != undefined)
-        newProduct.imgPath = req.file.path ; 
+     newStore.imgPath = req.file.path ; 
    
     //Populating the newProduct with values from the request body that matches the schema paths and ignoring other values .
     schemaPaths.forEach(item => {
 
         if(  req.body[item] != undefined )
-            newProduct[item] = req.body[item];
+          newStore[item] = req.body[item];
     });
-
- 
-    //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
-    if(! ObjectId.isValid(newProduct.store) )
-        throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
     (
        async () => { 
-         const store = await Store.findById(newProduct.store).exec();
-         if(store == null)
-            throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
-
-           const product = await new Product(newProduct).save({select : {__v : -1 }});
-
-            await Store.updateOne({_id : newProduct.store} , {$addToSet : {products : newProduct._id}} , updateOps).exec(); 
-
-           res.status(201).json(product);
+           const store = await new Store(newStore).save({select : {__v : -1 }});
+           res.status(201).json(store);
     })()
     .catch(next);
 
@@ -76,11 +52,11 @@ module.exports.post = (req , res , next) => {
 
 module.exports.put = (req , res , next) => {
 
-    const productId = req.params.id ;
+    const storeId = req.params.id ;
     
     //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
-    if(! ObjectId.isValid(productId) )
-        throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+    if(! ObjectId.isValid(storeId) )
+        throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
      //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
      const reqBodyProperties = Object.getOwnPropertyNames(req.body).filter(item => ! /^_/.test(item)); //populate reqBodyProperties with req.body properties except those prefixed with '_' .
@@ -90,26 +66,33 @@ module.exports.put = (req , res , next) => {
     (
         async () => {
 
-            const updateProduct = {} ;
+            const updateStore = {} ;
 
             if(req.file != undefined)
-               updateProduct.imgPath = req.file.path ;
+              updateStore.imgPath = req.file.path ;
                  
-            //Dynamically populating the updateProduct with the new values that confirms with the Product schema .
+            //Dynamically populating the updateProduct with the new values that confirms with the Store schema .
             schemaPaths.forEach(item => {
 
                 if( req.body[item] != undefined && item !== 'imgPath' )
-                   updateProduct[item] = req.body[item]
+                  updateStore[item] = req.body[item]
             });
 
+            
+            //Saving the updateProduct
+        const updateOps = {
+                useFindAndModify : false ,
+                 runValidators : true ,
+                  new :true
+            };
          
-            const updatedProduct = await Product.findByIdAndUpdate( productId , updateProduct , updateOps ).exec();
+            const updatedStore = await Store.findByIdAndUpdate( storeId , updateStore , updateOps ).exec();
 
-            if(updatedProduct == null)
-               throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
+            if(updatedStore == null)
+               throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
 
 
-            res.status(201).json(updatedProduct);
+            res.status(201).json(updatedStore);
         }
     )
     ().catch(next);
@@ -118,28 +101,30 @@ module.exports.put = (req , res , next) => {
 
 module.exports.delete = (req , res , next) => {
 
-    const productId = req.params.id ;
+    const storeId = req.params.id ;
     
     //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
-    if(! ObjectId.isValid(productId) )
-        throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+    if(! ObjectId.isValid(storeId) )
+        throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
     (
         async () => {
-        
-           const deletedProduct = await Product.findByIdAndRemove( productId , deleteOps ).exec();
+            const deleteOps  = {
+                useFindAndModify : false
+            };
+           const deletedStore = await Store.findByIdAndRemove( storeId , deleteOps ).exec();
 
-           if(deletedProduct == null)
-                throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
+           if(deletedStore == null)
+                throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
 
             //If product have an image then it will be delted .
-            if(deletedProduct.imgPath != undefined)
-                unlink( deletedProduct.imgPath , (err) => {
+            if(deletedStore.imgPath != undefined)
+                unlink( deletedStore.imgPath , (err) => {
                 if (err)
                  throw ( err ); //Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
                 });
 
-            res.status(201).json(deletedProduct);
+            res.status(201).json(deletedStore);
         }
     )
     ().catch(next);

@@ -8,7 +8,7 @@ const maxImgSize = 5 * 1024 * 1024 /* 5 MBs maximum file size .*/ ;
 //Configuring multer .
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-    cb(null, './uploads/imgs/products'); //Images will be saved here locally .
+    cb(null, './uploads/imgs'); //Images will be saved here locally .
     }
     ,
 filename: function(req, file, cb) {

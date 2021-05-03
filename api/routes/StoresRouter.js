@@ -2,7 +2,7 @@
 
 const router = require("express").Router();
 const upload = require('../middlewares/uploadImg');
-const controller = require('../controllers/ProductsController');
+const controller = require('../controllers/StoresController');
 
 
 

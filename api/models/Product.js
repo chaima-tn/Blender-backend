@@ -1,9 +1,24 @@
+
 const mongoose = require('mongoose');
 
 
 const productSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
-    label: { type: String, required: true , trim : true , maxLength : 20 },
+    label: { 
+        type: String ,
+          required: true ,
+          trim : true ,
+          lowercase : true ,
+           maxLength : 20
+         },
+
+    store : {
+        type : mongoose.Schema.Types.ObjectId ,
+        required : true ,
+        ref : 'Store'
+    }
+    ,
+
     quantity : {
         type: Number ,
         required : true ,
@@ -11,14 +26,16 @@ const productSchema = mongoose.Schema({
     } ,
 
     imgPath : {
-        type : String 
-        
+        type : String ,
+        trim : true 
     } ,
 
     unit : {
         type : String ,
+        trim : true ,
         required : true ,
-        enum: ['g', 'l' , 'piece'] ,
+        lowercase : true ,
+        enum: ['g', 'l' , 'kg' , 'piece'] ,
         default : 'piece'
     } ,
     unitPrice : {
@@ -29,6 +46,8 @@ const productSchema = mongoose.Schema({
     detail : {
         type : String ,
         required : true ,
+        trim : true ,
+        lowercase : true ,
         maxLength : 200 
     } ,
     keywords : [String] ,
@@ -37,7 +56,14 @@ const productSchema = mongoose.Schema({
         required : true ,
         default : new Date()
     } ,
-    categories : [String] ,
+    categories : [
+        {
+            type : String ,
+            trim : true ,
+            lowercase : true ,
+            maxLength : 20 
+        }
+    ] ,
     orders : [{
         type : mongoose.Schema.Types.ObjectId ,
         ref : 'Order'

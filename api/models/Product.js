@@ -9,6 +9,12 @@ const productSchema = mongoose.Schema({
         required : true ,
         min : 1 
     } ,
+
+    imgPath : {
+        type : String 
+        
+    } ,
+
     unit : {
         type : String ,
         required : true ,

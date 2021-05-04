@@ -22,7 +22,7 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const products =  await Product.find().select("-__v").populate('store',"-__v").lean().exec() ;
+         const products =  await Product.find().select("-__v").populate('store orders',"-__v").lean().exec() ;
          res.status(200).json(products);
          
          }
@@ -42,8 +42,9 @@ module.exports.post = (req , res , next) => {
 
          
         //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
+        /// Note this init must be done before any throw operation .
         if(req.file != undefined)
-            newProduct.imgPath = req.file.path ; 
+            newProduct.imgPath = req.file.path.replace(/\\/g,"/"); 
                 
         const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
 
@@ -77,11 +78,12 @@ module.exports.post = (req , res , next) => {
     })()
     .catch(err => {
           //If the none saved product have an image then it will be delted .
-          if(newProduct.imgPath != undefined)
-          unlink( newProduct.imgPath , (error) => {
-            if (error)
-               err = error//Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it  won't affect the API users . 
-        });
+        if(newProduct.imgPath != undefined) {
+            unlink( newProduct.imgPath , (error) => {
+                if (error)
+                err = error//Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it  won't affect the API users . 
+            });
+        }
 
         next(err); //Throw the error to the ErrorHandler .
 
@@ -98,7 +100,13 @@ module.exports.put = (req , res , next) => {
 
     (
         async () => {
-                
+            
+            
+            //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
+            if(req.file != undefined )
+               updateProduct.imgPath = req.file.path.replace(/\\/g,"/"); 
+                 
+
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(productId) )
             throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
@@ -108,10 +116,6 @@ module.exports.put = (req , res , next) => {
             if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
                 throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
 
-
-            if(req.file != undefined )
-               updateProduct.imgPath = req.file.path ;
-                 
             //Dynamically populating the updateProduct with the new values that confirms with the Product schema .
             schemaPaths.forEach(item => {
                 if( req.body[item] != undefined && item !== 'store' ) //sotreId cannot be altered .
@@ -151,12 +155,14 @@ module.exports.delete = (req , res , next) => {
             await Store.updateOne({_id : deletedProduct.store} , {$pull : {products : deletedProduct._id}} , updateOps).exec();//Push the new product to the list of products owned by the given store . 
 
             //If product have an image then it will be delted only if all the operations above succedes .
-            if(  deletedProduct.imgPath != undefined )
-              unlink( deletedProduct.imgPath , (err) => {
+            if(  deletedProduct.imgPath != undefined ) {
+             
+                unlink( deletedProduct.imgPath , (err) => {
                     if (err)
                     throw ( err ); //Debugging only , in production such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
                 });
-                    
+            
+            }
 
             res.status(201).json(deletedProduct);
         }

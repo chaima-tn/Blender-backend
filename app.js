@@ -8,6 +8,8 @@ mongoose.Promise = global.Promise; //Setting the mongoose promises to JS global 
 //Routers
 const productsRouter = require('./api/routes/ProductsRouter');
 const storesRouter = require('./api/routes/StoresRouter');
+const ordersRouter = require('./api/routes/OrdersRouter');
+
 
 //DB
 const user = process.env.DB_USER || {username : 'blender' , password : 'BzlbGQaWYeoG2jbC'}; //DB user .
@@ -51,8 +53,10 @@ async function start() {
 
     //Routes .
 
-    app.use("/products", productsRouter );
-    app.use("/stores",storesRouter);
+
+    app.use( "/products" , productsRouter );
+    app.use( "/stores" ,storesRouter );
+    app.use( "/orders" , ordersRouter );
 
     //Requested resource does not match any route .
     app.use((req, res, next) => {

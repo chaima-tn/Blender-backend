@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 
 const productSchema = mongoose.Schema({
-    _id: mongoose.Schema.Types.ObjectId,
+    _id /*protected*/ : mongoose.Schema.Types.ObjectId,
     label: { 
         type: String ,
           required: true ,
@@ -12,7 +12,7 @@ const productSchema = mongoose.Schema({
            maxLength : 20
          },
 
-    store : {
+    store /*protected on update */ : {
         type : mongoose.Schema.Types.ObjectId ,
         required : true ,
         ref : 'Store'
@@ -25,7 +25,7 @@ const productSchema = mongoose.Schema({
         min : 1 
     } ,
 
-    imgPath : {
+    imgPath /*protected*/ : {
         type : String ,
         trim : true 
     } ,
@@ -51,7 +51,7 @@ const productSchema = mongoose.Schema({
         maxLength : 200 
     } ,
     keywords : [String] ,
-    createdAt : {
+    createdAt /*protected*/  : {
         type : Date ,
         required : true ,
         default : new Date()
@@ -64,7 +64,7 @@ const productSchema = mongoose.Schema({
             maxLength : 20 
         }
     ] ,
-    orders : [{
+    orders /*protected*/ : [{
         type : mongoose.Schema.Types.ObjectId ,
         ref : 'Order'
     }]

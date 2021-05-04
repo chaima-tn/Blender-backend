@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 
 const storeSchema = mongoose.Schema({
-    _id: mongoose.Schema.Types.ObjectId,
+    _id /*protected*/ : mongoose.Schema.Types.ObjectId,
     name: { 
             type: String ,
              required: true ,
@@ -12,14 +12,14 @@ const storeSchema = mongoose.Schema({
                maxLength : 20
             } ,
     
-    imgPath : {
+    imgPath /*protected*/ : {
                 type : String 
                 
             } ,
     
     keywords : [String] ,
 
-    createdAt : {
+    createdAt /*protected*/ : {
                 type : Date ,
                 required : true ,
                 default : new Date()
@@ -27,7 +27,7 @@ const storeSchema = mongoose.Schema({
     
     categories : [String] ,
     
-    products : [{
+    products /*protected*/ : [{
                 type : mongoose.Schema.Types.ObjectId ,
                 ref : 'Product'
             }]

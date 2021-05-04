@@ -40,10 +40,13 @@ module.exports.post = (req , res , next) => {
     (
        async () => { 
 
+            
+            //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
+            /// Note this init must be done before any throw operation .
             if(req.file != undefined)
-                newStore.imgPath = req.file.path ; 
+                newStore.imgPath = req.file.path.replace(/\\/g,"/"); 
 
-            const reqBodyProperties = Object.getOwnPropertyNames(req.body).filter(item => ! /^_/.test(item)); //populate reqBodyProperties with req.body properties except those prefixed with '_' .
+                const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
             if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
@@ -61,11 +64,12 @@ module.exports.post = (req , res , next) => {
     })()
     .catch(err => {
         //If the none saved store have an image then it will be delted .
-        if(newStore.imgPath != undefined)
-        unlink( newStore.imgPath , (error) => {
-          if (error)
-             err = error//Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it  won't affect the API users . 
-      });
+        if(newStore.imgPath != undefined) {
+            unlink( newStore.imgPath , (error) => {
+            if (error)
+                err = error//Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it  won't affect the API users . 
+            });
+        }
 
       next(err); //Throw the error to the ErrorHandler .
 
@@ -85,17 +89,21 @@ module.exports.put = (req , res , next) => {
     (
         async () => {
 
+            //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
+            if(req.file != undefined)
+               updateStore.imgPath = req.file.path.replace(/\\/g,"/") ;
+            
+
              //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(storeId) )
                 throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
-            const reqBodyProperties = Object.getOwnPropertyNames(req.body).filter(item => ! /^_/.test(item)); //populate reqBodyProperties with req.body properties except those prefixed with '_' .
+            const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
                 throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
           
-            if(req.file != undefined)
-              updateStore.imgPath = req.file.path ;
+         
                  
             //Dynamically populating the updateStore with the new values that confirms with the Store schema .
             schemaPaths.forEach(item => {
@@ -138,12 +146,14 @@ module.exports.delete = (req , res , next) => {
                 throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
 
             //If store have an image then it will be delted .
-            if(deletedStore.imgPath != undefined)
+            if(deletedStore.imgPath != undefined) {
+              
                 unlink( deletedStore.imgPath , (err) => {
-                if (err)
-                 throw ( err ); //Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
+                    if (err)
+                    throw ( err ); //Debuggin only , in production such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
                 });
-
+            
+            }
             res.status(201).json(deletedStore);
         }
     )

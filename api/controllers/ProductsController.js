@@ -39,42 +39,41 @@ module.exports.post = (req , res , next) => {
    
     (
         async () => { 
-                
-        const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
-        
+
+         
         //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
         if(req.file != undefined)
             newProduct.imgPath = req.file.path ; 
-     
-         //Populating the newProduct with values from the request body that matches the schema paths and ignoring other values .
-         schemaPaths.forEach(item => {
-             if(  req.body[item] != undefined )
-                 newProduct[item] = req.body[item];
-         });
- 
-     
+                
+        const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
 
         //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
         // The message is obscure insuring security by obscurity concept .
         //This helps protect special paths that are not meant to be altered by an input and determined by the backend app logic .
         if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
             throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
-         
-
-   
+     
+     
+         //Populating the newProduct with values from the request body that matches the schema paths and ignoring other values .
+         schemaPaths.forEach(item => {
+             if(  req.body[item] != undefined )
+                 newProduct[item] = req.body[item];
+         });
+     
         //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
         if(! ObjectId.isValid(newProduct.store) )
             throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
-            const store = await Store.findById(newProduct.store).exec();
-            if(store == null)
-                throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
+        const store = await Store.findById(newProduct.store).exec();
 
-            const product = await new Product(newProduct).save({select : {__v : -1 }});
+        if(store == null)
+            throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
 
-                await Store.updateOne({_id : newProduct.store} , {$addToSet : {products : newProduct._id}} , updateOps).exec();//Push the new product to the list of products owned by the given store . 
+        const product = await new Product(newProduct).save({select : {__v : -1 }});
 
-            res.status(201).json(product); 
+        await Store.updateOne({_id : newProduct.store} , {$addToSet : {products : newProduct._id}} , updateOps).exec();//Push the new product to the list of products owned by the given store . 
+
+        res.status(201).json(product); 
     })()
     .catch(err => {
           //If the none saved product have an image then it will be delted .
@@ -149,7 +148,7 @@ module.exports.delete = (req , res , next) => {
            if(deletedProduct == null)
                 throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
 
-              await Store.updateOne({_id : deletedProduct.store} , {$pull : {products : deletedProduct._id}} , updateOps).exec();//Push the new product to the list of products owned by the given store . 
+            await Store.updateOne({_id : deletedProduct.store} , {$pull : {products : deletedProduct._id}} , updateOps).exec();//Push the new product to the list of products owned by the given store . 
 
             //If product have an image then it will be delted only if all the operations above succedes .
             if(  deletedProduct.imgPath != undefined )

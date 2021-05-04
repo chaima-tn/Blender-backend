@@ -11,6 +11,28 @@ const storeSchema = mongoose.Schema({
               trim : true ,
                maxLength : 20
             } ,
+    
+    imgPath : {
+                type : String 
+                
+            } ,
+    
+    keywords : [String] ,
+
+    createdAt : {
+                type : Date ,
+                required : true ,
+                default : new Date()
+            } ,
+    
+    categories : [String] ,
+    
+    products : [{
+                type : mongoose.Schema.Types.ObjectId ,
+                ref : 'Product'
+            }]
+        ,
+    
     address : {
         governorate : {
             type : String ,
@@ -53,23 +75,7 @@ const storeSchema = mongoose.Schema({
             
         }
     } 
-    ,
-    imgPath : {
-        type : String 
-        
-    } ,
-    keywords : [String] ,
-    createdAt : {
-        type : Date ,
-        required : true ,
-        default : new Date()
-    } ,
-    categories : [String] ,
-    products : [{
-        type : mongoose.Schema.Types.ObjectId ,
-        ref : 'Product'
-    }]
-
+   
 });
 
 module.exports = mongoose.model('Store', storeSchema);

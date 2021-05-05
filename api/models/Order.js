@@ -12,8 +12,9 @@ const productSchema = mongoose.Schema({
         min : 1 
     } ,
 
-    accepted : {
-        type : Boolean 
+    accepted /*protected on create */ : {
+        type : Boolean ,
+        default : false
     } ,
   
     at /*protected*/  : {
@@ -34,7 +35,13 @@ const productSchema = mongoose.Schema({
         type : mongoose.Schema.Types.ObjectId ,
         ref : 'Product' ,
         required : true
-    } 
+    } ,
+
+    cart /*protected on update */ : {
+        type : mongoose.Schema.Types.ObjectId ,
+        ref : 'Cart' ,
+        required : true
+    }
 
 });
 

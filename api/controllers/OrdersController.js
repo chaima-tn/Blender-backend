@@ -1,6 +1,7 @@
 
 const Order = require("../models/Order");
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Order model schema paths excluding only private and protected paths .
@@ -22,13 +23,14 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const orders =  await Order.find().select("-__v").populate('product',"-__v").lean().exec() ;
+         const orders =  await Order.find().select("-__v").populate('product cart',"-__v").lean().exec() ;
          res.status(200).json(orders);
          
          }
      )
      ().catch(next);
-        }; 
+
+}; 
 
 module.exports.post = (req , res , next) => {
 
@@ -52,7 +54,7 @@ module.exports.post = (req , res , next) => {
         
             //Populating the newOrder with values from the request body that matches the schema paths and ignoring other values .
             schemaPaths.forEach(item => {
-                if(  req.body[item] != undefined )
+                if(  req.body[item] != undefined && item !== 'accepted' ) //Any new order initially is unaccepted , it can be accepted by the store owne later on .
                     newOrder[item] = req.body[item];
             });
         
@@ -60,14 +62,24 @@ module.exports.post = (req , res , next) => {
             if(! ObjectId.isValid(newOrder.product) )
                 throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
 
+            if(! ObjectId.isValid(newOrder.cart) )
+                throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );    
+
             const product = await Product.findById(newOrder.product).exec();
 
             if(product == null)
                 throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
 
+            const cart =  await Cart.findById(newOrder.cart).exec();
+
+            if(cart == null)
+                throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
+
             const order = await new Order(newOrder).save({select : {__v : -1 }});
 
-            await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders owned by the given store . 
+            await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the product . 
+            await Cart.updateOne({_id : newOrder.cart} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the cart . 
+
 
             res.status(201).json(order); 
     })()
@@ -96,7 +108,7 @@ module.exports.put = (req , res , next) => {
 
             //Dynamically populating the updateOrder with the new values that confirms with the Order schema .
             schemaPaths.forEach(item => {
-                if( req.body[item] != undefined && item !== 'product' ) //product id cannot be altered .
+                if( req.body[item] != undefined && item !== 'product' && item !== 'cart' ) //product id cannot be altered .
                    updateOrder[item] = req.body[item]
             });
 
@@ -131,6 +143,8 @@ module.exports.delete = (req , res , next) => {
                 throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
 
             await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the product list of orders . 
+
+            await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the cart list of orders . 
 
            
             res.status(201).json(deletedOrder);

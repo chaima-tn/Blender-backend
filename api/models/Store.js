@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 
 const storeSchema = mongoose.Schema({
-    _id: mongoose.Schema.Types.ObjectId,
+    _id /*protected*/ : mongoose.Schema.Types.ObjectId,
     name: { 
             type: String ,
              required: true ,
@@ -11,6 +11,28 @@ const storeSchema = mongoose.Schema({
               trim : true ,
                maxLength : 20
             } ,
+    
+    imgPath /*protected*/ : {
+                type : String 
+                
+            } ,
+    
+    keywords : [String] ,
+
+    createdAt /*protected*/ : {
+                type : Date ,
+                required : true ,
+                default : new Date()
+            } ,
+    
+    categories : [String] ,
+    
+    products /*protected*/ : [{
+                type : mongoose.Schema.Types.ObjectId ,
+                ref : 'Product'
+            }]
+        ,
+    
     address : {
         governorate : {
             type : String ,
@@ -53,23 +75,7 @@ const storeSchema = mongoose.Schema({
             
         }
     } 
-    ,
-    imgPath : {
-        type : String 
-        
-    } ,
-    keywords : [String] ,
-    createdAt : {
-        type : Date ,
-        required : true ,
-        default : new Date()
-    } ,
-    categories : [String] ,
-    products : [{
-        type : mongoose.Schema.Types.ObjectId ,
-        ref : 'Product'
-    }]
-
+   
 });
 
 module.exports = mongoose.model('Store', storeSchema);

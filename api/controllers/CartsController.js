@@ -3,7 +3,7 @@ const Cart = require("../models/Cart");
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Cart model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^at$)|(^orders$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^at$)|(^orders$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Cart.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  

@@ -4,8 +4,15 @@ const mongoose = require('mongoose');
 
 const productSchema = mongoose.Schema({
     
-    _id /*protected*/ : mongoose.Schema.Types.ObjectId,
+    _id /*protected*/ : mongoose.Schema.Types.ObjectId ,
 
+    
+    totalPrice /* protected */ : {
+        type : Number ,
+        required : true ,
+        default : 0 ,
+        min : 0
+    } ,
     
     at /*protected*/  : {
         type : Date ,

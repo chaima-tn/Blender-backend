@@ -6,7 +6,15 @@ const productSchema = mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
 
-    quantity : {
+
+    totalPrice /* protected */ : {
+        type : Number ,
+        required : true ,
+        default : 0 ,
+        min : 0
+    } ,
+
+    quantity /*protected on update*/  : {
         type: Number ,
         required : true ,
         min : 1 

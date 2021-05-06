@@ -5,7 +5,7 @@ const Cart = require('../models/Cart');
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Order model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^at$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^at$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Order.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  
@@ -82,10 +82,12 @@ module.exports.post = (req , res , next) => {
 
              updatedProduct = await Product.findByIdAndUpdate(newOrder.product , {$inc : {quantity : - newOrder.quantity}} , updateOps).exec();//Decrement the ordered qunatity from the product available quantity .
             
+            newOrder.totalPrice = product.unitPrice * newOrder.quantity ; //totalPrice 
+
             const order = await new Order(newOrder).save({select : {__v : -1 }});
 
             await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the product . 
-            await Cart.updateOne({_id : newOrder.cart} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the cart . 
+            await Cart.updateOne({_id : newOrder.cart} , {$addToSet : {orders : newOrder._id} , $inc : {totalPrice : newOrder.totalPrice}} , updateOps).exec();//Push the new order to the list of orders of the cart . 
 
 
             res.status(201).json(order); 
@@ -130,7 +132,7 @@ module.exports.put = (req , res , next) => {
 
             //Dynamically populating the updateOrder with the new values that confirms with the Order schema .
             schemaPaths.forEach(item => {
-                if( req.body[item] != undefined && item !== 'product' && item !== 'cart' ) //product id cannot be altered .
+                if( req.body[item] != undefined && item !== 'product' && item !== 'cart' && item !== 'quantity' ) //product/cart id and quantity cannot be altered .
                    updateOrder[item] = req.body[item]
             });
 
@@ -166,7 +168,7 @@ module.exports.delete = (req , res , next) => {
 
             await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id} , $inc : {quantity :  deletedOrder.quantity} }    , updateOps).exec();//Pull the removed order from the product list of orders . 
 
-            await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the cart list of orders . 
+            await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}  ,  $inc : {totalPrice :  - deletedOrder.totalPrice } } , updateOps).exec();//Pull the removed order from the cart list of orders . 
 
            
             res.status(201).json(deletedOrder);

@@ -6,17 +6,17 @@ const controller = require('../controllers/StoresController');
 
 
 
-// GET on FQDN/products OR FQDN/products/
+// GET on FQDN/products OR FQDN/stores/
 router.get("/",controller.getAll);
 
-// POST on FQDN/products OR FQDN/products/
+// POST on FQDN/products OR FQDN/stores/
  router.post("/" , upload.single('img') ,controller.post);
 
-// PUT on FQDN/products/ID .
+// PUT on FQDN/stores/ID .
 router.put("/:id", upload.single('img') , controller.put );
 
 
-// DELETE on FQDN/products/ID .
+// DELETE on FQDN/stores/ID .
 router.delete("/:id", controller.delete );
 
 module.exports = router;

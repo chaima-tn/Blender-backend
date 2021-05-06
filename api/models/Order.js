@@ -6,14 +6,23 @@ const productSchema = mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
 
-    quantity : {
+
+    totalPrice /* protected */ : {
+        type : Number ,
+        required : true ,
+        default : 0 ,
+        min : 0
+    } ,
+
+    quantity /*protected on update*/  : {
         type: Number ,
         required : true ,
         min : 1 
     } ,
 
-    accepted : {
-        type : Boolean 
+    accepted /*protected on create */ : {
+        type : Boolean ,
+        default : false
     } ,
   
     at /*protected*/  : {
@@ -34,7 +43,13 @@ const productSchema = mongoose.Schema({
         type : mongoose.Schema.Types.ObjectId ,
         ref : 'Product' ,
         required : true
-    } 
+    } ,
+
+    cart /*protected on update */ : {
+        type : mongoose.Schema.Types.ObjectId ,
+        ref : 'Cart' ,
+        required : true
+    }
 
 });
 

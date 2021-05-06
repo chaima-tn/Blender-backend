@@ -1,10 +1,11 @@
 
 const Order = require("../models/Order");
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Order model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^at$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^at$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Order.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  
@@ -22,13 +23,14 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const orders =  await Order.find().select("-__v").populate('product',"-__v").lean().exec() ;
+         const orders =  await Order.find().select("-__v").populate('product cart',"-__v").lean().exec() ;
          res.status(200).json(orders);
          
          }
      )
      ().catch(next);
-        }; 
+
+}; 
 
 module.exports.post = (req , res , next) => {
 
@@ -36,7 +38,9 @@ module.exports.post = (req , res , next) => {
     const newOrder = {
         _id :  new ObjectId() 
     };     
-   
+    
+    let updatedProduct = null , product = null;
+
     (
         async () => { 
 
@@ -52,7 +56,7 @@ module.exports.post = (req , res , next) => {
         
             //Populating the newOrder with values from the request body that matches the schema paths and ignoring other values .
             schemaPaths.forEach(item => {
-                if(  req.body[item] != undefined )
+                if(  req.body[item] != undefined && item !== 'accepted' ) //Any new order initially is unaccepted , it can be accepted by the store owne later on .
                     newOrder[item] = req.body[item];
             });
         
@@ -60,18 +64,50 @@ module.exports.post = (req , res , next) => {
             if(! ObjectId.isValid(newOrder.product) )
                 throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
 
-            const product = await Product.findById(newOrder.product).exec();
+            if(! ObjectId.isValid(newOrder.cart) )
+                throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );    
+
+             product = await Product.findById(newOrder.product).exec();
 
             if(product == null)
                 throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
 
+            const cart =  await Cart.findById(newOrder.cart).exec();
+
+            if(cart == null)
+                throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
+
+            if( newOrder.quantity > product.quantity )
+                throw ( Object.assign(new Error("Product available quantity exceeded .") , {status : 400}) );
+
+             updatedProduct = await Product.findByIdAndUpdate(newOrder.product , {$inc : {quantity : - newOrder.quantity}} , updateOps).exec();//Decrement the ordered qunatity from the product available quantity .
+            
+            newOrder.totalPrice = product.unitPrice * newOrder.quantity ; //totalPrice 
+
             const order = await new Order(newOrder).save({select : {__v : -1 }});
 
-            await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders owned by the given store . 
+            await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the product . 
+            await Cart.updateOne({_id : newOrder.cart} , {$addToSet : {orders : newOrder._id} , $inc : {totalPrice : newOrder.totalPrice}} , updateOps).exec();//Push the new order to the list of orders of the cart . 
+
 
             res.status(201).json(order); 
     })()
-    .catch(next)
+    .catch(err => {
+
+        if(updatedProduct && product && product.quantity > updatedProduct.quantity ) {
+            (    
+                async () => {
+
+                    await Product.findByIdAndUpdate(updatedProduct._id , {$inc : {quantity :  newOrder.quantity}} , updateOps).exec();//Increment the ordered qunatity from the product available quantity in case of an error.
+
+                })()
+                .catch(error => {err = error})
+            
+            }
+        
+        next(err);
+    
+  })
 
 };
 
@@ -96,7 +132,7 @@ module.exports.put = (req , res , next) => {
 
             //Dynamically populating the updateOrder with the new values that confirms with the Order schema .
             schemaPaths.forEach(item => {
-                if( req.body[item] != undefined && item !== 'product' ) //product id cannot be altered .
+                if( req.body[item] != undefined && item !== 'product' && item !== 'cart' && item !== 'quantity' ) //product/cart id and quantity cannot be altered .
                    updateOrder[item] = req.body[item]
             });
 
@@ -130,7 +166,9 @@ module.exports.delete = (req , res , next) => {
            if(deletedOrder == null)
                 throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
 
-            await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the product list of orders . 
+            await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id} , $inc : {quantity :  deletedOrder.quantity} }    , updateOps).exec();//Pull the removed order from the product list of orders . 
+
+            await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}  ,  $inc : {totalPrice :  - deletedOrder.totalPrice } } , updateOps).exec();//Pull the removed order from the cart list of orders . 
 
            
             res.status(201).json(deletedOrder);

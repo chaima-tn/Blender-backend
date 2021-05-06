@@ -57,7 +57,8 @@ const storeSchema = mongoose.Schema({
         postalCode : {
             type : Number ,
             min : 1000 ,
-            max : 9199 
+            max : 9199 ,
+            required :true
         } ,
         city : {
             type : String ,

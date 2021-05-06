@@ -38,7 +38,9 @@ module.exports.post = (req , res , next) => {
     const newOrder = {
         _id :  new ObjectId() 
     };     
-   
+    
+    let updatedProduct = null , product = null;
+
     (
         async () => { 
 
@@ -65,7 +67,7 @@ module.exports.post = (req , res , next) => {
             if(! ObjectId.isValid(newOrder.cart) )
                 throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );    
 
-            const product = await Product.findById(newOrder.product).exec();
+             product = await Product.findById(newOrder.product).exec();
 
             if(product == null)
                 throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
@@ -75,6 +77,11 @@ module.exports.post = (req , res , next) => {
             if(cart == null)
                 throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
 
+            if( newOrder.quantity > product.quantity )
+                throw ( Object.assign(new Error("Product available quantity exceeded .") , {status : 400}) );
+
+             updatedProduct = await Product.findByIdAndUpdate(newOrder.product , {$inc : {quantity : - newOrder.quantity}} , updateOps).exec();//Decrement the ordered qunatity from the product available quantity .
+            
             const order = await new Order(newOrder).save({select : {__v : -1 }});
 
             await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the product . 
@@ -83,7 +90,22 @@ module.exports.post = (req , res , next) => {
 
             res.status(201).json(order); 
     })()
-    .catch(next)
+    .catch(err => {
+
+        if(updatedProduct && product && product.quantity > updatedProduct.quantity ) {
+            (    
+                async () => {
+
+                    await Product.findByIdAndUpdate(updatedProduct._id , {$inc : {quantity :  newOrder.quantity}} , updateOps).exec();//Increment the ordered qunatity from the product available quantity in case of an error.
+
+                })()
+                .catch(error => {err = error})
+            
+            }
+        
+        next(err);
+    
+  })
 
 };
 
@@ -142,7 +164,7 @@ module.exports.delete = (req , res , next) => {
            if(deletedOrder == null)
                 throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
 
-            await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the product list of orders . 
+            await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id} , $inc : {quantity :  deletedOrder.quantity} }    , updateOps).exec();//Pull the removed order from the product list of orders . 
 
             await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}} , updateOps).exec();//Pull the removed order from the cart list of orders . 
 

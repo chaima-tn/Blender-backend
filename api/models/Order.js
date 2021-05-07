@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 
-const productSchema = mongoose.Schema({
+const orderSchema = mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
 
@@ -31,14 +31,6 @@ const productSchema = mongoose.Schema({
         default : new Date()
     } ,
 
- 
-
-    by : {
-        type :  mongoose.Schema.Types.ObjectId ,
-        ref : 'User' ,
-        //required : true
-    } ,
-
     product /*protected on update */  : {
         type : mongoose.Schema.Types.ObjectId ,
         ref : 'Product' ,
@@ -53,4 +45,4 @@ const productSchema = mongoose.Schema({
 
 });
 
-module.exports = mongoose.model('Order', productSchema);
+module.exports = mongoose.model('Order', orderSchema);

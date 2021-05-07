@@ -1,5 +1,6 @@
 
 const Cart = require("../models/Cart");
+const Customer = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Cart model schema paths excluding only private and protected paths .
@@ -21,7 +22,7 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const carts =  await Cart.find().select("-__v").populate('orders',"-__v").lean().exec() ;
+         const carts =  await Cart.find().select("-__v").populate('orders customer',"-__v").lean().exec() ;
          res.status(200).json(carts);
          
          }
@@ -48,9 +49,28 @@ module.exports.post = (req , res , next) => {
             //This helps protect special paths that are not meant to be altered by an input and determined by the backend app logic .
             if( ! require("../functions/isArrEquals")( reqBodyProperties , schemaPaths ) )
                 throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
- 
-            const cart = await new Cart(newCart).save({select : {__v : -1 }});
+
             
+                //Populating the newCart with values from the request body that matches the schema paths and ignoring other values .
+                schemaPaths.forEach(item => {
+                    if(  req.body[item] != undefined  )
+                        newCart[item] = req.body[item];
+                });
+
+            if( ! ObjectId.isValid(newCart.customer) )
+                throw ( Object.assign(new Error("CUSTOMER ID is invalid .") , {status : 400}) );
+
+            const customer = await Customer.findById(newCart.customer).exec();
+
+            if(customer == null)
+                throw ( Object.assign(new Error("Customer not found .") , {status : 404}) );
+            
+            if( customer.role !== 'customer' )
+               throw ( Object.assign(new Error("Not a customer .") , {status : 400}) );
+
+            const cart = await new Cart(newCart).save({select : {__v : -1 }});
+            await Customer.updateOne({_id : newCart.customer} , {$addToSet : {carts : newCart._id} } , updateOps).exec();//Push the new cart to the list of cart made by the customer . 
+
             res.status(201).json(cart); 
     })()
     .catch(next)
@@ -74,7 +94,10 @@ module.exports.delete = (req , res , next) => {
            if(deletedCart == null)
                 throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
 
- 
+            
+            await Customer.updateOne({_id : deletedCart.customer} , {$pull : {carts : deletedCart._id}  } , updateOps).exec();//Pull the removed cart from the cart list of the customer . 
+
+
             res.status(201).json(deletedCart);
         }
     )().catch(next)

@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 
-const productSchema = mongoose.Schema({
+const cartSchema = mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId ,
 
@@ -14,6 +14,13 @@ const productSchema = mongoose.Schema({
         min : 0
     } ,
     
+
+    customer /* protected on update */ : {
+        type :  mongoose.Schema.Types.ObjectId ,
+        ref : 'User' ,
+        required : true
+    } ,
+
     at /*protected*/  : {
         type : Date ,
         required : true ,
@@ -27,4 +34,4 @@ const productSchema = mongoose.Schema({
 
 });
 
-module.exports = mongoose.model('Cart', productSchema);
+module.exports = mongoose.model('Cart', cartSchema);

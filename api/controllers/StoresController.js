@@ -1,5 +1,6 @@
 
 const Store = require("../models/Store");
+const Owner = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the Store model schema paths excluding only private and protected paths .
@@ -23,7 +24,7 @@ module.exports.getAll = (req,res,next) => {
     ( 
         async  () => {
          
-         const stores =  await Store.find().select("-__v").populate('products',"-__v").lean().exec() ;
+         const stores =  await Store.find().select("-__v").populate('products owner',"-__v").lean().exec() ;
          res.status(200).json(stores);
          
          }
@@ -58,9 +59,21 @@ module.exports.post = (req , res , next) => {
                 newStore[item] = req.body[item];
             });
 
-        
-           const store = await new Store(newStore).save({select : {__v : -1 }});
-           res.status(201).json(store);
+            if( ! ObjectId.isValid(newStore.owner) )
+                throw ( Object.assign(new Error("OWNER ID is invalid .") , {status : 400}) );
+
+            const owner = await Owner.findById(newStore.owner).exec();
+
+            if(owner == null)
+                throw ( Object.assign(new Error("Owner not found .") , {status : 404}) );
+            
+            if( owner.role !== 'owner' )
+                 throw ( Object.assign(new Error("Not a store owner .") , {status : 400}) );
+
+            const store = await new Store(newStore).save({select : {__v : -1 }});
+            await Owner.updateOne( {_id : owner._id} , {$set : {store : newStore._id}} , updateOps ).exec();
+
+            res.status(201).json(store);
     })()
     .catch(err => {
         //If the none saved store have an image then it will be delted .
@@ -108,7 +121,7 @@ module.exports.put = (req , res , next) => {
             //Dynamically populating the updateStore with the new values that confirms with the Store schema .
             schemaPaths.forEach(item => {
 
-                if( req.body[item] != undefined )
+                if( req.body[item] != undefined  && item !== 'owner' )
                   updateStore[item] = req.body[item]
             });
 
@@ -145,6 +158,7 @@ module.exports.delete = (req , res , next) => {
            if(deletedStore == null)
                 throw ( Object.assign(new Error("Store not found .") , {status : 404}) );
 
+            await Owner.updateOne( {_id : deletedStore.owner} , {$unset : {store : deletedStore._id}} , updateOps ).exec();
             //If store have an image then it will be delted .
             if(deletedStore.imgPath != undefined) {
               

@@ -4,6 +4,13 @@ const mongoose = require('mongoose');
 
 const storeSchema = mongoose.Schema({
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
+    
+    owner : /*protected on update*/ {
+            type : mongoose.Schema.Types.ObjectId ,
+            ref : 'User' ,
+            required : true
+        }
+    ,
     name: { 
             type: String ,
              required: true ,

@@ -1,6 +1,5 @@
 
 const User = require("../models/User");
-const Store = require('../models/Store');
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the User model schema paths excluding only private and protected paths .
@@ -62,7 +61,7 @@ module.exports.post = (req , res , next) => {
          });
      
         const query = await User.find({ $or: [ { email : newUser.email } ,{ username : newUser.username }, {phone : newUser.phone }] });
-        if ( query.length ){
+        if ( query.length > 0 ){
             throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
         }
 
@@ -119,7 +118,7 @@ module.exports.put = (req , res , next) => {
             });
 
             const query = await User.find({ $or: [ { email : updateUser.email } , {phone : updateUser.phone }] });
-            if ( query.length ){
+            if ( query.length > 0 ){
                 throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
             }
 

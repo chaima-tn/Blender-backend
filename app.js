@@ -3,7 +3,12 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
 mongoose.Promise = global.Promise; //Setting the mongoose promises to JS global promises .
+
+const session = require('express-session');
+const auth = require('./api/middlewares/auth');
+const cors = require('./api/middlewares/httpControl');
 
 //Routers
 const productsRouter = require('./api/routes/ProductsRouter');
@@ -35,22 +40,13 @@ async function start() {
     //Middlewares
 
     app.use(morgan('dev')); //Http request Logger .
+    //app.use(cookieParser('secret'));
     app.use(express.json()); //JSON parser .
     app.use('/uploads', express.static('uploads')); //uploads is a static folder .
-
-    //CORS specification .
-    app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*"); //Allowing cross origin access froma any origin.
-    res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-    if (req.method === "OPTIONS") {
-        res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
-        return res.status(200).json({});
-    }
-    next();
-    });
+    app.use(session({secret : 'secret' ,resave: false,saveUninitialized: false}));
+    app.use(auth.initialize());
+    app.use(auth.session());
+    app.use(cors); //CORS specification .
 
 
     //Routes .

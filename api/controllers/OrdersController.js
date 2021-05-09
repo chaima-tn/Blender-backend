@@ -1,6 +1,7 @@
 
 const Order = require("../models/Order");
 const Product = require('../models/Product');
+const Store = require('../models/Store');
 const Cart = require('../models/Cart');
 const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -61,21 +62,25 @@ module.exports.post = (req , res , next) => {
             });
         
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
-            if(! ObjectId.isValid(newOrder.product) )
-                throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+
 
             if(! ObjectId.isValid(newOrder.cart) )
                 throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );    
 
+            const carts = req.user.carts.map(element => 
+                element = element.toString()
+            );
+
+            if( ! carts.includes(newOrder.cart) )
+                throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );    
+
+             if(! ObjectId.isValid(newOrder.product) )
+                throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+            
              product = await Product.findById(newOrder.product).exec();
 
             if(product == null)
                 throw ( Object.assign(new Error("Product not found .") , {status : 404}) );
-
-            const cart =  await Cart.findById(newOrder.cart).exec();
-
-            if(cart == null)
-                throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
 
             if( newOrder.quantity > product.quantity )
                 throw ( Object.assign(new Error("Product available quantity exceeded .") , {status : 400}) );
@@ -125,6 +130,8 @@ module.exports.put = (req , res , next) => {
             if(! ObjectId.isValid(orderId) )
                 throw ( Object.assign(new Error("Order ID is invalid .") , {status : 400}) );
 
+            
+
             const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
             if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
@@ -136,8 +143,32 @@ module.exports.put = (req , res , next) => {
                    updateOrder[item] = req.body[item]
             });
 
+            const order = await Order.findById(orderId).lean().exec();
+            
+            if( order == null )
+             throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
+
+            if( req.user.store == undefined )
+              throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
+        
+         if(! ObjectId.isValid(req.user.store) )
+              throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
+
+
+         const result = await Store.findById( req.user.store ).lean().exec() ;
+                       
+         if(result == null)
+               throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
          
-            const updatedOrder = await Order.findByIdAndUpdate( orderId , updateOrder , updateOps ).exec();
+         result.products = result.products.map(element => 
+                 element = element.toString()
+             );
+
+         if (! result.products.includes(order.product.toString()) )
+           throw ( Object.assign(new Error(`Product not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+     
+        
+       const updatedOrder = await Order.findByIdAndUpdate( orderId , updateOrder , updateOps ).exec();
 
             if(updatedOrder == null)
                throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
@@ -160,6 +191,17 @@ module.exports.delete = (req , res , next) => {
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(orderId) )
                 throw ( Object.assign(new Error("Order ID is invalid .") , {status : 400}) );
+
+            const order = await Order.findById(orderId).lean().exec();
+
+            const carts = req.user.carts.map(element => 
+                element = element.toString()
+            );
+
+            if( ! carts.includes(order.cart) )
+             throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );        
+    
+
 
             const deletedOrder = await Order.findByIdAndRemove( orderId , deleteOps ).exec();
 

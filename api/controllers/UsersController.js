@@ -1,10 +1,11 @@
 
 const User = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
+const auth = require('../middlewares/auth');
 const {unlink} = require('fs'); 
 // Forms an array of all the User model schema paths excluding only private and protected paths .
 const regex = /(^_)|(^imgPath$)|(^at$)|(^carts$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
-const schemaPaths = Object.getOwnPropertyNames(User.prototype.schema.paths).filter(item => ! regex.test(item));
+const schemaPaths = Object.getOwnPropertyNames(User.prototype.schema.paths).filter(item => ! regex.test(item)).concat('password');
 
 //Mongoose update options .  
 const updateOps = {
@@ -18,7 +19,7 @@ const deleteOps  = {
     };
 
 module.exports.getAll = (req,res,next) => {
-
+    
     ( 
         async  () => {
          const users =  await User.find().select("-__v").populate('store carts',"-__v").lean().exec() ;
@@ -65,8 +66,8 @@ module.exports.post = (req , res , next) => {
             throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
         }
 
-        const user = await new User(newUser).save({select : {__v : -1 }});
-
+      
+        const user = await User.register(newUser , newUser.password);
         res.status(201).json(user); 
           
         
@@ -89,7 +90,8 @@ module.exports.post = (req , res , next) => {
 
 module.exports.put = (req , res , next) => {
 
-    const userId = req.params.id ;
+    //const userId = req.params.id ;
+    const userId = req.user._id ;
     const updateUser = {} ;
 
 
@@ -138,7 +140,8 @@ module.exports.put = (req , res , next) => {
 
 module.exports.delete = (req , res , next) => {
 
-    const userId = req.params.id ;
+    // const userId = req.params.id ;
+    const userId = req.user._id ;
 
     (
         async () => {
@@ -162,9 +165,29 @@ module.exports.delete = (req , res , next) => {
             
             }
 
+            req.logout();
+
             res.status(201).json(deletedUser);
         }
     )().catch(next)
   
+
+};
+
+module.exports.login = ( req , res , next) => {
+
+    res.status(200).json({
+        message : `welcome ${req.user.username}`
+    })
+
+};
+
+module.exports.logout = ( req , res , next) => {
+
+    req.logout();
+
+    res.status(200).json({
+        message : `Logged out .`
+    })
 
 };

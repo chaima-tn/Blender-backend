@@ -4,7 +4,7 @@ const Customer = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
 
 // Forms an array of all the Cart model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^at$)|(^orders$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^at$)|(^orders$)|(^totalPrice$)|(^customer$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Cart.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  
@@ -35,7 +35,8 @@ module.exports.post = (req , res , next) => {
 
     //Declaring newCart , this object will be saved to DB . 
     const newCart = {
-        _id :  new ObjectId() 
+        _id :  new ObjectId() ,
+        customer : req.user._id
     };     
    
     (
@@ -89,6 +90,17 @@ module.exports.delete = (req , res , next) => {
             if(! ObjectId.isValid(cartId) )
                 throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );
 
+            
+            if(! ObjectId.isValid(req.user._id) )
+                throw ( Object.assign(new Error("Customer ID is invalid .") , {status : 400}) );    
+
+            const carts = req.user.carts.map(element => 
+                element = element.toString()
+            );
+
+            if( ! carts.includes(cartId) )
+                throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );    
+    
             const deletedCart = await Cart.findByIdAndRemove( cartId , deleteOps ).exec();
 
            if(deletedCart == null)

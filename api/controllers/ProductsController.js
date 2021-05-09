@@ -4,7 +4,7 @@ const Store = require('../models/Store');
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the Product model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^imgPath$)|(^createdAt$)|(^orders$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^imgPath$)|(^createdAt$)|(^orders$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  
@@ -34,7 +34,8 @@ module.exports.post = (req , res , next) => {
 
     //Declaring newProduct , this object will be saved to DB . 
     const newProduct = {
-        _id : req.id || new ObjectId() 
+        _id : req.id || new ObjectId() ,
+        store : req.user.store
     };     
    
     (
@@ -61,8 +62,12 @@ module.exports.post = (req , res , next) => {
                  newProduct[item] = req.body[item];
          });
      
-        //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
-        if(! ObjectId.isValid(newProduct.store) )
+         //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+      
+         if( newProduct.store == undefined )
+          throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
+      
+         if(! ObjectId.isValid(newProduct.store) )
             throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
         const store = await Store.findById(newProduct.store).exec();
@@ -105,11 +110,30 @@ module.exports.put = (req , res , next) => {
             //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
             if(req.file != undefined )
                updateProduct.imgPath = req.file.path.replace(/\\/g,"/"); 
-                 
+             
+            if( req.user.store == undefined )
+               throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
+           
+            if(! ObjectId.isValid(req.user.store) )
+                 throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(productId) )
-            throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+               throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+
+            const result = await Store.findById( req.user.store ).lean().exec() ;
+                          
+            if(result == null)
+                  throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+            
+            result.products = result.products.map(element => 
+                    element = element.toString()
+                );
+
+            if (! result.products.includes(productId) )
+              throw ( Object.assign(new Error(` Not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+        
+
 
             const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
@@ -143,9 +167,30 @@ module.exports.delete = (req , res , next) => {
     (
         async () => {
             
+            if( req.user.store == undefined )
+               throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
+           
+            if(! ObjectId.isValid(req.user.store) )
+                 throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
+
+
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(productId) )
-            throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+                throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
+
+            const result = await Store.findById( req.user.store ).lean().exec() ;
+                          
+            if(result == null)
+                  throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+            
+            result.products = result.products.map(element => 
+                    element = element.toString()
+                );
+
+            if (! result.products.includes(productId) )
+              throw ( Object.assign(new Error(` Not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+        
+
 
             const deletedProduct = await Product.findByIdAndRemove( productId , deleteOps ).exec();
 

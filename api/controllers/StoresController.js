@@ -4,7 +4,7 @@ const Owner = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the Store model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^imgPath$)|(^createdAt$)|(^products$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^imgPath$)|(^createdAt$)|(^products$)|(^owner$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Store.prototype.schema.paths).filter(item => ! regex.test(item));
 
 //Mongoose update options .  
@@ -35,18 +35,23 @@ module.exports.getAll = (req,res,next) => {
 module.exports.post = (req , res , next) => {
     
     const newStore = {
-        _id : req.id || new ObjectId() 
+        _id : req.id || new ObjectId() ,
+        owner : req.user._id 
     };      
    
     (
        async () => { 
 
+          
             
             //If an image is uploaded then its path must be included in the newProduct POJO to be saved in the DB .
             /// Note this init must be done before any throw operation .
             if(req.file != undefined)
                 newStore.imgPath = req.file.path.replace(/\\/g,"/"); 
 
+            if( req.user.store != undefined )
+                throw ( Object.assign(new Error("You do own a store .") , {status : 400}) );
+            
                 const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
@@ -94,7 +99,7 @@ module.exports.post = (req , res , next) => {
 
 module.exports.put = (req , res , next) => {
 
-    const storeId = req.params.id ;
+    const storeId = req.user.store ;
     const updateStore = {} ;
 
    
@@ -106,6 +111,8 @@ module.exports.put = (req , res , next) => {
             if(req.file != undefined)
                updateStore.imgPath = req.file.path.replace(/\\/g,"/") ;
             
+            if( req.user.store == undefined )
+               throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
 
              //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(storeId) )
@@ -121,7 +128,7 @@ module.exports.put = (req , res , next) => {
             //Dynamically populating the updateStore with the new values that confirms with the Store schema .
             schemaPaths.forEach(item => {
 
-                if( req.body[item] != undefined  && item !== 'owner' )
+                if( req.body[item] != undefined  )
                   updateStore[item] = req.body[item]
             });
 
@@ -143,10 +150,14 @@ module.exports.put = (req , res , next) => {
 
 module.exports.delete = (req , res , next) => {
 
-    const storeId = req.params.id ;
+    const storeId = req.user.store ;
     
     (
         async () => {
+
+            if( req.user.store == undefined )
+               throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
+
           
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(storeId) )

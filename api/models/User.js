@@ -1,8 +1,8 @@
 
 const mongoose = require('mongoose');
+const  plugin = require('passport-local-mongoose');
 
-
-const userSchema = mongoose.Schema({
+const userSchema = new  mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId ,
 
@@ -57,7 +57,7 @@ const userSchema = mongoose.Schema({
     }
     ,
 
-    username /* must be unique / protected on update */ : {
+     /* username must be unique / protected on update */ /* : {
         type : String ,
         required : true ,
         lowercase : true ,
@@ -72,7 +72,7 @@ const userSchema = mongoose.Schema({
         minLength : 8 ,
         maxLength : 25 ,
     } ,
-
+    */
     phone /*must be unique*/ : {
         type :Number ,
         required : true ,
@@ -146,5 +146,7 @@ const userSchema = mongoose.Schema({
         }
     } 
 });
+
+userSchema.plugin(plugin , {usernameQueryFields : ['email']});
 
 module.exports = mongoose.model('User', userSchema);

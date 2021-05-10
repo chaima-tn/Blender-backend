@@ -3,7 +3,7 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-const cookieParser = require('cookie-parser');
+
 mongoose.Promise = global.Promise; //Setting the mongoose promises to JS global promises .
 
 const session = require('express-session');
@@ -43,7 +43,7 @@ async function start() {
     //app.use(cookieParser('secret'));
     app.use(express.json()); //JSON parser .
     app.use('/uploads', express.static('uploads')); //uploads is a static folder .
-    app.use(session({secret : 'secret' ,resave: false,saveUninitialized: false}));
+    app.use(session({secret : process.env.SESSION_SECRET || 'M2sCSAV&Ep#rW3Dm' ,resave: false,saveUninitialized: false}));
     app.use(auth.initialize());
     app.use(auth.session());
     app.use(cors); //CORS specification .

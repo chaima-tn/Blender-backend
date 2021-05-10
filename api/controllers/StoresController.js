@@ -18,13 +18,19 @@ const deleteOps  = {
     useFindAndModify : false
     };
 
+const pageSize = 10 ; // Size of pool stores on a page .
 
 module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
          
-         const stores =  await Store.find().select("-__v").populate('products owner',"-__v").lean().exec() ;
+        const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+        if ( isNaN(pageNum) )
+            throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+
+         const stores =  await Store.find().skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('products owner',"-__v").lean().exec() ;
          res.status(200).json(stores);
          
          }

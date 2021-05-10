@@ -7,7 +7,10 @@ const {unlink} = require('fs');
 const regex = /(^_)|(^imgPath$)|(^createdAt$)|(^orders$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).filter(item => ! regex.test(item));
 
-//Mongoose update options .  
+//Mongoose update options .
+
+const pageSize = 10 ; // Size of pool products on a page .
+
 const updateOps = {
     useFindAndModify : false ,
     runValidators : true ,
@@ -22,7 +25,13 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const products =  await Product.find().select("-__v").populate('store orders',"-__v").lean().exec() ;
+
+         const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+         if ( isNaN(pageNum) )
+              throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+      
+         const products =  await Product.find().skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('store orders',"-__v").lean().exec() ;
          res.status(200).json(products);
          
          }

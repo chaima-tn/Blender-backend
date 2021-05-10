@@ -9,7 +9,7 @@ const auth = require('../middlewares/auth');
 
 
 // GET on FQDN/products OR FQDN/stores/
-router.get("/",controller.getAll); //
+router.get("/:page",controller.getAll); //
 
 // POST on FQDN/products OR FQDN/stores/
  router.post("/" , auth.isOwnerAuth , upload.single('img') ,controller.post);

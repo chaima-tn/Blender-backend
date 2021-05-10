@@ -61,14 +61,16 @@ module.exports.post = (req , res , next) => {
                     newOrder[item] = req.body[item];
             });
         
-            //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+            //Tests weither the given Cart ID  can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
 
 
             if(! ObjectId.isValid(newOrder.cart) )
                 throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );    
 
+            // If the order Id is not included in the list of carts owned by the connected customer  an error must be thrown .
+
             const carts = req.user.carts.map(element => 
-                element = element.toString()
+                element = element.toString() //Casts ObjectId to String
             );
 
             if( ! carts.includes(newOrder.cart) )
@@ -121,7 +123,7 @@ module.exports.put = (req , res , next) => {
 
     const orderId = req.params.id ;
     const updateOrder = {} ;
-
+    const storeId = req.user.store ;
 
     (
         async () => {
@@ -148,14 +150,14 @@ module.exports.put = (req , res , next) => {
             if( order == null )
              throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
 
-            if( req.user.store == undefined )
+            if( storeId == undefined )
               throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
         
-         if(! ObjectId.isValid(req.user.store) )
+         if(! ObjectId.isValid( storeId ) )
               throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
 
-         const result = await Store.findById( req.user.store ).lean().exec() ;
+         const result = await Store.findById( storeId ).lean().exec() ;
                        
          if(result == null)
                throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
@@ -192,7 +194,12 @@ module.exports.delete = (req , res , next) => {
             if(! ObjectId.isValid(orderId) )
                 throw ( Object.assign(new Error("Order ID is invalid .") , {status : 400}) );
 
+            // If the order Id is not included in the list of carts owned by the connected customer  an error must be thrown .    
+          
             const order = await Order.findById(orderId).lean().exec();
+            
+            if(order == null)
+                throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
 
             const carts = req.user.carts.map(element => 
                 element = element.toString()

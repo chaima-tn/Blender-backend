@@ -1,9 +1,15 @@
 
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 
+// Mongoose configuration 
+mongoose.set('useNewUrlParser', true); // Ensures using the new Url parser of the MogoDB driver .
+mongoose.set('useUnifiedTopology', true); // Uses the new MongoDB unified topology .
+mongoose.set('useFindAndModify', false); // Avoid deprecation caused by using findAndModify .
+mongoose.set('useCreateIndex', true); // Avoid deprecation caused by using collection.ensureIndex and use collection.Createindex insted . 
 mongoose.Promise = global.Promise; //Setting the mongoose promises to JS global promises .
 
 const session = require('express-session');
@@ -19,16 +25,16 @@ const usersRouter = require('./api/routes/UsersRouter');
 
 
 //DB
-const user = process.env.DB_USER || {username : 'blender' , password : 'BzlbGQaWYeoG2jbC'}; //DB user .
-const db = process.env.DB_NAME || 'blender'; //DB name .
+const user =  { username : process.env.DB_USERNAME , password : process.env.DB_PWD }; //DB user .
+const db = process.env.DB_NAME ; //DB name .
 
-const uri = `mongodb+srv://${encodeURIComponent(user.username)}:${encodeURIComponent(user.password)}@blender.u1jxs.mongodb.net/${encodeURIComponent(db)}?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${encodeURIComponent(user.username)}:${encodeURIComponent(user.password)}@${encodeURIComponent(process.env.DB_CLUSTER)}/${encodeURIComponent(db)}?retryWrites=true&w=majority`;
 
 async function start() {
 
     //connecting to db .
     console.log(`Connecting to DB "${db}" ...`);
-    const connection = await mongoose.connect(uri, {useNewUrlParser: true , useUnifiedTopology:true});
+    const connection = await mongoose.connect(uri);
     console.log(`Connected to DB "${db}" as "${user.username}" at ${new Date().toDateString()}.`);   
 
     /* If the connection to db failed it will throw an error which will break the execution of this function and will be catched with start().catch()
@@ -40,10 +46,9 @@ async function start() {
     //Middlewares
 
     app.use(morgan('dev')); //Http request Logger .
-    //app.use(cookieParser('secret'));
     app.use(express.json()); //JSON parser .
     app.use('/uploads', express.static('uploads')); //uploads is a static folder .
-    app.use(session({secret : process.env.SESSION_SECRET || 'M2sCSAV&Ep#rW3Dm' ,resave: false,saveUninitialized: false}));
+    app.use(session({secret : process.env.SESSION_SECRET ,resave: false,saveUninitialized: false}));
     app.use(auth.initialize());
     app.use(auth.session());
     app.use(cors); //CORS specification .

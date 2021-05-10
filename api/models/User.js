@@ -57,27 +57,12 @@ const userSchema = new  mongoose.Schema({
     }
     ,
 
-     /* username must be unique / protected on update */ /* : {
-        type : String ,
-        required : true ,
-        lowercase : true ,
-        trim :true ,
-        maxLength : 20 ,
-        //unique : true 
-    } ,
-
-    password : {
-        type : String ,
-        required : true ,
-        minLength : 8 ,
-        maxLength : 25 ,
-    } ,
-    */
     phone /*must be unique*/ : {
         type :Number ,
         required : true ,
         min : 20000000 ,
         max : 99999999 ,
+        unique : true
     }
     ,
 
@@ -85,7 +70,7 @@ const userSchema = new  mongoose.Schema({
         type : String ,
         required : true ,
         match : /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g ,
-        //unique : true
+        unique : true
     }
     ,
 

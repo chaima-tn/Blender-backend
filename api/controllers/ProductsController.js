@@ -100,6 +100,7 @@ module.exports.post = (req , res , next) => {
 module.exports.put = (req , res , next) => {
 
     const productId = req.params.id ;
+    const storeId = req.user.store ;
     const updateProduct = {} ;
 
 
@@ -111,21 +112,23 @@ module.exports.put = (req , res , next) => {
             if(req.file != undefined )
                updateProduct.imgPath = req.file.path.replace(/\\/g,"/"); 
              
-            if( req.user.store == undefined )
+            if( storeId == undefined )
                throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
            
-            if(! ObjectId.isValid(req.user.store) )
+            if(! ObjectId.isValid(storeId) )
                  throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
             //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(productId) )
                throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
 
-            const result = await Store.findById( req.user.store ).lean().exec() ;
+            // The store and Product ID are valid , this block will querry the DB to find the store doc and checks if the productID is an ID of a product owned by the connected sotre owner store .
+            const result = await Store.findById( storeId ).lean().exec() ;
                           
             if(result == null)
                   throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
             
+            // products property of store doc is ann array of ObjectId , this block casts each ObjectId to its string value to check if the string value of the ProductId is invcluded in the products .
             result.products = result.products.map(element => 
                     element = element.toString()
                 );
@@ -163,14 +166,15 @@ module.exports.put = (req , res , next) => {
 module.exports.delete = (req , res , next) => {
 
     const productId = req.params.id ;
+    const storeId = req.user.store ;
 
     (
         async () => {
             
-            if( req.user.store == undefined )
+            if( storeId == undefined )
                throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
            
-            if(! ObjectId.isValid(req.user.store) )
+            if(! ObjectId.isValid(storeId) )
                  throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
 
@@ -178,7 +182,7 @@ module.exports.delete = (req , res , next) => {
             if(! ObjectId.isValid(productId) )
                 throw ( Object.assign(new Error("Product ID is invalid .") , {status : 400}) );
 
-            const result = await Store.findById( req.user.store ).lean().exec() ;
+            const result = await Store.findById( storeId ).lean().exec() ;
                           
             if(result == null)
                   throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .

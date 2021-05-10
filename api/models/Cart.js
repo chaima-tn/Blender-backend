@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 
-const cartSchema = mongoose.Schema({
+const cartSchema = new mongoose.Schema({
     
     _id /*protected*/ : mongoose.Schema.Types.ObjectId ,
 
@@ -15,7 +15,7 @@ const cartSchema = mongoose.Schema({
     } ,
     
 
-    customer /* protected on update */ : {
+    customer /* protected */ : {
         type :  mongoose.Schema.Types.ObjectId ,
         ref : 'User' ,
         required : true

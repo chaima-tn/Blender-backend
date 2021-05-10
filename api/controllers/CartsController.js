@@ -82,6 +82,7 @@ module.exports.post = (req , res , next) => {
 module.exports.delete = (req , res , next) => {
 
     const cartId = req.params.id ;
+    const customerId = req.user._id ;
 
     (
         async () => {
@@ -91,7 +92,7 @@ module.exports.delete = (req , res , next) => {
                 throw ( Object.assign(new Error("Cart ID is invalid .") , {status : 400}) );
 
             
-            if(! ObjectId.isValid(req.user._id) )
+            if(! ObjectId.isValid( customerId ) )
                 throw ( Object.assign(new Error("Customer ID is invalid .") , {status : 400}) );    
 
             const carts = req.user.carts.map(element => 

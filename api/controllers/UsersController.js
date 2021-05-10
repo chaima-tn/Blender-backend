@@ -1,7 +1,6 @@
 
 const User = require("../models/User");
 const ObjectId = require('mongoose').Types.ObjectId;
-const auth = require('../middlewares/auth');
 const {unlink} = require('fs'); 
 // Forms an array of all the User model schema paths excluding only private and protected paths .
 const regex = /(^_)|(^imgPath$)|(^at$)|(^carts$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
@@ -60,7 +59,8 @@ module.exports.post = (req , res , next) => {
              if(  req.body[item] != undefined )
                  newUser[item] = req.body[item];
          });
-     
+         
+          //Looks for duplicated data such us email or phone number or username .
         const query = await User.find({ $or: [ { email : newUser.email } ,{ username : newUser.username }, {phone : newUser.phone }] });
         if ( query.length > 0 ){
             throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
@@ -68,6 +68,7 @@ module.exports.post = (req , res , next) => {
 
       
         const user = await User.register(newUser , newUser.password);
+        
         res.status(201).json(user); 
           
         
@@ -90,8 +91,8 @@ module.exports.post = (req , res , next) => {
 
 module.exports.put = (req , res , next) => {
 
-    //const userId = req.params.id ;
-    const userId = req.user._id ;
+
+    const userId = req.user._id ;  // Takes the conncted user ID .
     const updateUser = {} ;
 
 
@@ -104,7 +105,7 @@ module.exports.put = (req , res , next) => {
                updateUser.imgPath = req.file.path.replace(/\\/g,"/"); 
                  
 
-            //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+            //Tests weither the given ID can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(userId) )
              throw ( Object.assign(new Error("User ID is invalid .") , {status : 400}) );
 
@@ -115,10 +116,11 @@ module.exports.put = (req , res , next) => {
 
             //Dynamically populating the updateUser with the new values that confirms with the User schema .
             schemaPaths.forEach(item => {
-                if( req.body[item] != undefined  && item !== 'username' && item !== 'role' ) //sotreId / Username and role cannot be altered .
+                if( req.body[item] != undefined  && item !== 'username' && item !== 'role' ) //username / role cannot be altered .
                    updateUser[item] = req.body[item]
             });
 
+            //Looks for duplicated data such us email or phone number .
             const query = await User.find({ $or: [ { email : updateUser.email } , {phone : updateUser.phone }] });
             if ( query.length > 0 ){
                 throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
@@ -130,6 +132,7 @@ module.exports.put = (req , res , next) => {
             if(updatedUser == null)
                throw ( Object.assign(new Error("User not found .") , {status : 404}) );
 
+            
 
             res.status(201).json(updatedUser);
         }
@@ -140,13 +143,13 @@ module.exports.put = (req , res , next) => {
 
 module.exports.delete = (req , res , next) => {
 
-    // const userId = req.params.id ;
-    const userId = req.user._id ;
+
+    const userId = req.user._id ; // Takes the conncted user ID .
 
     (
         async () => {
             
-            //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+            //Tests weither the given User ID can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
             if(! ObjectId.isValid(userId) )
                throw ( Object.assign(new Error("User ID is invalid .") , {status : 400}) );
 
@@ -165,7 +168,7 @@ module.exports.delete = (req , res , next) => {
             
             }
 
-            req.logout();
+            req.logout(); // Logout a user after deleting there account .
 
             res.status(201).json(deletedUser);
         }
@@ -176,6 +179,8 @@ module.exports.delete = (req , res , next) => {
 
 module.exports.login = ( req , res , next) => {
 
+    console.log(`User ${req.user.username} authenticated at ${new Date().toString()}`);
+
     res.status(200).json({
         message : `welcome ${req.user.username}`
     })
@@ -184,7 +189,7 @@ module.exports.login = ( req , res , next) => {
 
 module.exports.logout = ( req , res , next) => {
 
-    req.logout();
+    req.logout(); //Visit http://www.passportjs.org/docs/logout/ .
 
     res.status(200).json({
         message : `Logged out .`

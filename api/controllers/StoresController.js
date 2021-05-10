@@ -39,6 +39,9 @@ module.exports.post = (req , res , next) => {
         owner : req.user._id 
     };      
    
+
+    const storeId = req.user.store ;
+
     (
        async () => { 
 
@@ -49,7 +52,7 @@ module.exports.post = (req , res , next) => {
             if(req.file != undefined)
                 newStore.imgPath = req.file.path.replace(/\\/g,"/"); 
 
-            if( req.user.store != undefined )
+            if( storeId != undefined )
                 throw ( Object.assign(new Error("You do own a store .") , {status : 400}) );
             
                 const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
@@ -111,7 +114,7 @@ module.exports.put = (req , res , next) => {
             if(req.file != undefined)
                updateStore.imgPath = req.file.path.replace(/\\/g,"/") ;
             
-            if( req.user.store == undefined )
+            if( storeId == undefined )
                throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
 
              //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
@@ -155,7 +158,7 @@ module.exports.delete = (req , res , next) => {
     (
         async () => {
 
-            if( req.user.store == undefined )
+            if( storeId == undefined )
                throw ( Object.assign(new Error("You do not own a store .") , {status : 400}) );
 
           

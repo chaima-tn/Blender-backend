@@ -6,7 +6,7 @@ const auth = require('../middlewares/auth');
 
 
 // GET on FQDN/products OR FQDN/orders/
-router.get("/",controller.getAll);  //Testing purposes only .
+router.get("/", auth.isAuth , controller.getAll);  //Testing purposes only .
 
 // POST on FQDN/products OR FQDN/orders/
  router.post("/" , auth.isCustomerAuth , controller.post);

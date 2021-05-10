@@ -19,15 +19,26 @@ const deleteOps  = {
 
 module.exports.getAll = (req,res,next) => {
     
-    ( 
-        async  () => {
-         const users =  await User.find().select("-__v").populate('store carts',"-__v").lean().exec() ;
-         res.status(200).json(users);
-         
-         }
-     )
-     ().catch(next);
-        }; 
+
+        ( 
+            async  () => {
+
+                let querry = {};
+
+                if( req.user.role !== 'admin' ) //Only admin is authz to get all the users infos .
+                    querry = {_id : req.user._id };
+
+                const users =  await User.find( querry ).select("-__v").populate('store carts',"-__v").lean().exec() ;
+                res.status(200).json(users);
+            
+            }
+        )
+        ().catch(next);
+    
+
+
+
+}
 
 module.exports.post = (req , res , next) => {
 

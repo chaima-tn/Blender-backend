@@ -4,6 +4,7 @@ const Product = require('../models/Product');
 const Store = require('../models/Store');
 const Cart = require('../models/Cart');
 const ObjectId = require('mongoose').Types.ObjectId;
+const { query } = require("express");
 
 // Forms an array of all the Order model schema paths excluding only private and protected paths .
 const regex = /(^_)|(^at$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
@@ -24,7 +25,18 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const orders =  await Order.find().select("-__v").populate('product cart',"-__v").lean().exec() ;
+        
+        let querry = {};
+
+        if( req.user.role !== 'admin' ) //Only admin is authz to get all the orders infos .
+            {
+                if ( req.user.role !== 'customer' )
+                  throw ( Object.assign(new Error("Forbidden .") , {status : 403}) ); // If not an admin and not a customer you are forbidden to see any orders .
+
+                querry = { cart : { $in : req.user.carts } }; //If you the connected user is a customer then it can only observe its own list of orders .
+            }
+
+         const orders =  await Order.find( querry ).select("-__v").populate('product cart',"-__v").lean().exec() ;
          res.status(200).json(orders);
          
          }

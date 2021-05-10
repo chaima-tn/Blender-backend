@@ -22,9 +22,20 @@ module.exports.getAll = (req,res,next) => {
 
     ( 
         async  () => {
-         const carts =  await Cart.find().select("-__v").populate('orders customer',"-__v").lean().exec() ;
-         res.status(200).json(carts);
-         
+
+            let querry = {};
+
+            if( req.user.role !== 'admin' ) //Only admin is authz to get all the carts infos .
+                {
+                     if ( req.user.role !== 'customer' )
+                        throw ( Object.assign(new Error("Forbidden .") , {status : 403}) ); // If not an admin and not a customer you are forbidden to see any carts .
+        
+                    querry = { _id : { $in : req.user.carts } }; //If you the connected user is a customer then it can only observe its own list of carts .
+                }
+
+            const carts =  await Cart.find( querry ).select("-__v").populate('orders customer',"-__v").lean().exec() ;
+            res.status(200).json(carts);
+            
          }
      )
      ().catch(next);

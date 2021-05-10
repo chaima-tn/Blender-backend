@@ -2,20 +2,20 @@
 
 const router = require("express").Router();
 const controller = require('../controllers/OrdersController');
-
+const auth = require('../middlewares/auth');
 
 
 // GET on FQDN/products OR FQDN/orders/
-router.get("/",controller.getAll);
+router.get("/", auth.isAuth , controller.getAll);  //Testing purposes only .
 
 // POST on FQDN/products OR FQDN/orders/
- router.post("/" , controller.post);
+ router.post("/" , auth.isCustomerAuth , controller.post);
 
 // PUT on FQDN/orders/ID .
-router.put("/:id" , controller.put );
+router.put("/:id" , auth.isOwnerAuth , controller.put );
 
 
 // DELETE on FQDN/orders/ID .
-router.delete("/:id" , controller.delete );
+router.delete("/:id" , auth.isCustomerAuth , controller.delete );
 
 module.exports = router;

@@ -2,8 +2,15 @@
 const mongoose = require('mongoose');
 
 
-const storeSchema = mongoose.Schema({
+const storeSchema = new mongoose.Schema({
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
+    
+    owner : /*protected*/ {
+            type : mongoose.Schema.Types.ObjectId ,
+            ref : 'User' ,
+            required : true
+        }
+    ,
     name: { 
             type: String ,
              required: true ,

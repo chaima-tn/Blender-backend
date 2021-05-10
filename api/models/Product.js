@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 
-const productSchema = mongoose.Schema({
+const productSchema = new mongoose.Schema({
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
     label: { 
         type: String ,
@@ -12,7 +12,7 @@ const productSchema = mongoose.Schema({
            maxLength : 20
          },
 
-    store /*protected on update */ : {
+    store /*protected*/ : {
         type : mongoose.Schema.Types.ObjectId ,
         required : true ,
         ref : 'Store'
@@ -51,6 +51,7 @@ const productSchema = mongoose.Schema({
         maxLength : 200 
     } ,
     keywords : [String] ,
+
     createdAt /*protected*/  : {
         type : Date ,
         required : true ,

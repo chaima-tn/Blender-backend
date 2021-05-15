@@ -18,7 +18,7 @@ const deleteOps  = {
     useFindAndModify : false
     };
 
-const pageSize = 10 ; // Size of pool stores on a page .
+const pageSize = 12 ; // Size of pool stores on a page .
 
 module.exports.getAll = (req,res,next) => {
 

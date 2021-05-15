@@ -9,7 +9,7 @@ const schemaPaths = Object.getOwnPropertyNames(Product.prototype.schema.paths).f
 
 //Mongoose update options .
 
-const pageSize = 10 ; // Size of pool products on a page .
+const pageSize = 12 ; // Size of pool products on a page .
 
 const updateOps = {
     useFindAndModify : false ,

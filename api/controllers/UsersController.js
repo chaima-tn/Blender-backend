@@ -74,7 +74,7 @@ module.exports.post = (req , res , next) => {
           //Looks for duplicated data such us email or phone number or username .
         const query = await User.find({ $or: [ { email : newUser.email } ,{ username : newUser.username }, {phone : newUser.phone }] });
         if ( query.length > 0 ){
-            throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
+            throw ( Object.assign(new Error("Email , Username or phone number are duplicated .") , {status : 400}) ); 
         }
 
       

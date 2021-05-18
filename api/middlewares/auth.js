@@ -26,7 +26,7 @@ passport.isAuth =  (req, res, next) =>  {
 passport.isNotAuth =  (req, res, next) =>  {
   if (! req.isAuthenticated()) return next();
   
-  next( Object.assign(new Error("Already logged in .") , {status : 401}));
+  next( Object.assign(new Error("Already logged in .") , {status : 403}));
 }
 
 

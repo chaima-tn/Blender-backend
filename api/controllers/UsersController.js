@@ -122,11 +122,11 @@ module.exports.put = (req , res , next) => {
 
             const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
-            if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
+            if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths.concat('newPassword') ) )
                 throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
 
             //Dynamically populating the updateUser with the new values that confirms with the User schema .
-            schemaPaths.forEach(item => {
+            schemaPaths.concat('newPassword').forEach(item => {
                 if( req.body[item] != undefined  && item !== 'username' && item !== 'role' ) //username / role cannot be altered .
                    updateUser[item] = req.body[item]
             });
@@ -134,14 +134,22 @@ module.exports.put = (req , res , next) => {
             //Looks for duplicated data such us email or phone number .
             const query = await User.find({ $or: [ { email : updateUser.email } , {phone : updateUser.phone }] });
             if ( query.length > 0 ){
-                throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
+                throw ( Object.assign(new Error("Email , Username or phone number are duplicated .") , {status : 400}) ); 
             }
-
          
+            const user = await User.findById( userId ).exec();
+            
+            if(user == null)
+               throw ( Object.assign(new Error("User not found .") , {status : 404}) );
+
+
+
+            if ( updateUser.password != undefined  && updateUser.newPassword != undefined  )
+                await user.changePassword( updateUser.password , updateUser.newPassword );   
+
+
             const updatedUser = await User.findByIdAndUpdate( userId , updateUser , updateOps ).exec();
 
-            if(updatedUser == null)
-               throw ( Object.assign(new Error("User not found .") , {status : 404}) );
 
             
 

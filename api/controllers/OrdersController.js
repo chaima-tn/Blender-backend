@@ -7,8 +7,11 @@ const ObjectId = require('mongoose').Types.ObjectId;
 const { query } = require("express");
 
 // Forms an array of all the Order model schema paths excluding only private and protected paths .
-const regex = /(^_)|(^at$)|(^totalPrice$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
+const regex = /(^_)|(^at$)|(^totalPrice$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Order.prototype.schema.paths).filter(item => ! regex.test(item));
+
+
+const pageSize = 12 ; // Size of pool products on a page .
 
 //Mongoose update options .  
 const updateOps = {
@@ -26,17 +29,26 @@ module.exports.getAll = (req,res,next) => {
     ( 
         async  () => {
         
+        const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+        if ( isNaN(pageNum) )
+            throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+
         let querry = {};
 
         if( req.user.role !== 'admin' ) //Only admin is authz to get all the orders infos .
             {
-                if ( req.user.role !== 'customer' )
-                  throw ( Object.assign(new Error("Forbidden .") , {status : 403}) ); // If not an admin and not a customer you are forbidden to see any orders .
+                if ( req.user.role == 'customer' ){
+                  querry = { cart : { $in : req.user.carts } }; //If you the connected user is a customer then it can only observe its own list of orders .
+                }else if ( req.user.role == 'owner' ) {
+                  querry = { store : req.user.store };   //If you the connected user is a store owner then it can only observe a list of its related orders .
+                }else{
+                    throw ( Object.assign(new Error("Forbidden .") , {status : 403}) ); // If not an admin , not a customer or an owner you are forbidden to see any orders .
+                }
 
-                querry = { cart : { $in : req.user.carts } }; //If you the connected user is a customer then it can only observe its own list of orders .
             }
 
-         const orders =  await Order.find( querry ).select("-__v").populate('product cart',"-__v").lean().exec() ;
+         const orders =  await Order.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('product cart ',"-__v").lean().exec() ;
          res.status(200).json(orders);
          
          }
@@ -103,6 +115,8 @@ module.exports.post = (req , res , next) => {
             
             newOrder.totalPrice = product.unitPrice * newOrder.quantity ; //totalPrice 
 
+            newOrder.store = product.store ;        
+        
             const order = await new Order(newOrder).save({select : {__v : -1 }});
 
             await Product.updateOne({_id : newOrder.product} , {$addToSet : {orders : newOrder._id}} , updateOps).exec();//Push the new order to the list of orders of the product . 

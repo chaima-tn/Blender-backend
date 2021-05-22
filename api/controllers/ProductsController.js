@@ -21,6 +21,37 @@ const deleteOps  = {
     useFindAndModify : false
     };
 
+
+module.exports.getStoreProducts = (req , res , next) => {
+    const storeId = req.params.id ;
+        (
+            async () => {
+    
+                const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+    
+                if ( isNaN(pageNum) )
+                    throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+
+                  //Tests weither the given ID in the URL can be a valid ObjectID or not , in case it cannot be a valid ObjectID an error with status 400 is returned and no need to query the DB .
+                if(! ObjectId.isValid(storeId) )
+                    throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
+
+               // The store and Product ID are valid , this block will querry the DB to find the store doc and checks if the productID is an ID of a product owned by the connected sotre owner store .
+               const result = await Store.findById( storeId ).lean().exec() ;
+                             
+               if(result == null)
+                     throw ( Object.assign(new Error(` Store not found .`) , {status : 404}) );//If no document is found a not found response is sent back with 404 status code .
+
+                const querry = {store : storeId };
+    
+                const products =  await Product.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('store orders',"-__v").lean().exec() ;
+                res.status(200).json(products);
+    
+        })
+        ().catch(next);
+            
+    }
+
 module.exports.getAll = (req,res,next) => {
 
     ( 

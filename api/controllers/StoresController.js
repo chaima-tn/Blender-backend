@@ -20,6 +20,8 @@ const deleteOps  = {
 
 const pageSize = 12 ; // Size of pool stores on a page .
 
+
+
 module.exports.getAll = (req,res,next) => {
 
     ( 

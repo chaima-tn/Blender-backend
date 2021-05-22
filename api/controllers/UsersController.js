@@ -1,10 +1,13 @@
 
 const User = require("../models/User");
+const Product = require("../models/Product");
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the User model schema paths excluding only private and protected paths .
 const regex = /(^_)|(^imgPath$)|(^at$)|(^carts$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(User.prototype.schema.paths).filter(item => ! regex.test(item)).concat('password');
+
+const pageSize = 12 ; // Size of pool products on a page .
 
 //Mongoose update options .  
 const updateOps = {
@@ -16,6 +19,26 @@ const updateOps = {
 const deleteOps  = {
     useFindAndModify : false
     };
+
+module.exports.getProducts = (req , res , next) => {
+    
+    (
+        async () => {
+
+            const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+            if ( isNaN(pageNum) )
+                throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+            
+            const querry = {store : req.user.store};
+
+            const products =  await Product.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('store orders',"-__v").lean().exec() ;
+            res.status(200).json(products);
+
+    })
+    ().catch(next);
+        
+}
 
 module.exports.getAll = (req,res,next) => {
     

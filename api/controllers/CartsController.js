@@ -7,6 +7,9 @@ const ObjectId = require('mongoose').Types.ObjectId;
 const regex = /(^_)|(^at$)|(^orders$)|(^totalPrice$)|(^customer$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(Cart.prototype.schema.paths).filter(item => ! regex.test(item));
 
+
+const pageSize = 12 ; // Size of pool products on a page .
+
 //Mongoose update options .  
 const updateOps = {
     useFindAndModify : false ,
@@ -23,6 +26,11 @@ module.exports.getAll = (req,res,next) => {
     ( 
         async  () => {
 
+            const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+            if ( isNaN(pageNum) )
+                 throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+
             let querry = {};
 
             if( req.user.role !== 'admin' ) //Only admin is authz to get all the carts infos .
@@ -33,7 +41,7 @@ module.exports.getAll = (req,res,next) => {
                     querry = { _id : { $in : req.user.carts } }; //If you the connected user is a customer then it can only observe its own list of carts .
                 }
 
-            const carts =  await Cart.find( querry ).select("-__v").populate('orders customer',"-__v").lean().exec() ;
+            const carts =  await Cart.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('orders customer',"-__v").lean().exec() ;
             res.status(200).json(carts);
             
          }

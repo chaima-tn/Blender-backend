@@ -1,10 +1,13 @@
 
 const User = require("../models/User");
+const Product = require("../models/Product");
 const ObjectId = require('mongoose').Types.ObjectId;
 const {unlink} = require('fs'); 
 // Forms an array of all the User model schema paths excluding only private and protected paths .
 const regex = /(^_)|(^imgPath$)|(^at$)|(^carts$)|(^store$)/; //Regex that matches private [prefixed with '_'] and protected [those that is not meant to be set by an input .] paths .
 const schemaPaths = Object.getOwnPropertyNames(User.prototype.schema.paths).filter(item => ! regex.test(item)).concat('password');
+
+const pageSize = 12 ; // Size of pool products on a page .
 
 //Mongoose update options .  
 const updateOps = {
@@ -16,6 +19,26 @@ const updateOps = {
 const deleteOps  = {
     useFindAndModify : false
     };
+
+module.exports.getProducts = (req , res , next) => {
+    
+    (
+        async () => {
+
+            const pageNum = Math.min( Math.max( 0 , req.params.page ) , Number.MAX_SAFE_INTEGER );
+
+            if ( isNaN(pageNum) )
+                throw ( Object.assign(new Error("Invalid page number .") , {status : 400}) );
+            
+            const querry = {store : req.user.store};
+
+            const products =  await Product.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('store orders',"-__v").lean().exec() ;
+            res.status(200).json(products);
+
+    })
+    ().catch(next);
+        
+}
 
 module.exports.getAll = (req,res,next) => {
     
@@ -122,11 +145,11 @@ module.exports.put = (req , res , next) => {
 
             const reqBodyProperties = Object.getOwnPropertyNames(req.body);//populate reqBodyProperties with req.body property names .
             //Tests weither the req.body contains properties that respects the schema , in case there is at least one invalid property name an error of status 400 will be returned .
-            if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths ) )
+            if( ! require("../functions/isArrEquals")(reqBodyProperties , schemaPaths.concat('newPassword') ) )
                 throw ( Object.assign(new Error("Invalid input .") , {status : 400}) );
 
             //Dynamically populating the updateUser with the new values that confirms with the User schema .
-            schemaPaths.forEach(item => {
+            schemaPaths.concat('newPassword').forEach(item => {
                 if( req.body[item] != undefined  && item !== 'username' && item !== 'role' ) //username / role cannot be altered .
                    updateUser[item] = req.body[item]
             });
@@ -134,14 +157,22 @@ module.exports.put = (req , res , next) => {
             //Looks for duplicated data such us email or phone number .
             const query = await User.find({ $or: [ { email : updateUser.email } , {phone : updateUser.phone }] });
             if ( query.length > 0 ){
-                throw ( Object.assign(new Error("User info(s) are duplicated .") , {status : 400}) ); 
+                throw ( Object.assign(new Error("Email , Username or phone number are duplicated .") , {status : 400}) ); 
             }
-
          
+            const user = await User.findById( userId ).exec();
+            
+            if(user == null)
+               throw ( Object.assign(new Error("User not found .") , {status : 404}) );
+
+
+
+            if ( updateUser.password != undefined  && updateUser.newPassword != undefined  )
+                await user.changePassword( updateUser.password , updateUser.newPassword );   
+
+
             const updatedUser = await User.findByIdAndUpdate( userId , updateUser , updateOps ).exec();
 
-            if(updatedUser == null)
-               throw ( Object.assign(new Error("User not found .") , {status : 404}) );
 
             
 

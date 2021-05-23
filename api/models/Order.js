@@ -7,6 +7,15 @@ const orderSchema = new mongoose.Schema({
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
 
 
+    
+    store /*protected */ : {
+        type : mongoose.Schema.Types.ObjectId ,
+        ref : 'Store' ,
+        required : true
+    }
+    ,
+
+
     totalPrice /* protected */ : {
         type : Number ,
         required : true ,

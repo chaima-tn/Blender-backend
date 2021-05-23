@@ -10,6 +10,10 @@ const auth = require('../middlewares/auth');
 // GET on FQDN/products OR FQDN/products/
 router.get("/:page",controller.getAll);
 
+
+// GET on FQDN/products OR FQDN/products/
+router.get("/store/:id/:page",controller.getStoreProducts);
+
 // POST on FQDN/products OR FQDN/products/
  router.post("/" , auth.isOwnerAuth , upload.single('img') ,controller.post);
 

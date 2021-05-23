@@ -10,6 +10,8 @@ const auth = require('../middlewares/auth');
 // GET on FQDN/users OR FQDN/users/
 router.get("/", auth.isAuth ,controller.getAll); 
 
+// GET on FQDN/users/products OR FQDN/users/products/
+router.get("/products/:page", auth.isOwnerAuth ,controller.getProducts); 
 
 router.post("/login" , auth.isNotAuth , auth.authenticate('local') /* Visit http://www.passportjs.org/docs/login/ */ ,  controller.login);
 router.post('/logout' , auth.isAuth , controller.logout);

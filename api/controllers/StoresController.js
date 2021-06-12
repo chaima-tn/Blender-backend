@@ -175,7 +175,7 @@ module.exports.delete = (req , res , next) => {
               throw ( Object.assign(new Error("Store ID is invalid .") , {status : 400}) );
 
 
-           const deletedStore = await Store.findByIdAndRemove( storeId , deleteOps ).exec();
+           const deletedStore = await Store.findOneAndRemove( { _id : storeId } , deleteOps ).exec();
 
            if(deletedStore == null)
                 throw ( Object.assign(new Error("Store not found .") , {status : 404}) );

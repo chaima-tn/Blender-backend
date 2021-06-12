@@ -1,6 +1,23 @@
 
 const mongoose = require('mongoose');
+const Product = require("../models/Product");
 
+
+//Mongoose update options .  
+const updateOps = {
+    useFindAndModify : false ,
+    runValidators : true ,
+    new :true
+    };
+//Mongoose delete options .         
+const deleteOps  = {
+    useFindAndModify : false
+    };
+//Hook options .
+const hookOps = {
+    query : true ,
+    document : false 
+};
 
 const storeSchema = new mongoose.Schema({
     _id /*protected*/ : mongoose.Schema.Types.ObjectId,
@@ -84,6 +101,11 @@ const storeSchema = new mongoose.Schema({
         }
     } 
    
+});
+
+storeSchema.post('findOneAndRemove' , hookOps ,  async (doc) => {
+ 
+    await Product.deleteMany( { _id : { $in : doc.products } } , deleteOps ).exec();
 });
 
 module.exports = mongoose.model('Store', storeSchema);

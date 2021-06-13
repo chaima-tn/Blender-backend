@@ -195,22 +195,25 @@ module.exports.delete = (req , res , next) => {
             if(! ObjectId.isValid(userId) )
                throw ( Object.assign(new Error("User ID is invalid .") , {status : 400}) );
 
-            const deletedUser = await User.findByIdAndRemove( userId , deleteOps ).exec();
+            const deletedUser = await User.findOneAndRemove( { _id :  userId } , deleteOps ).exec();
 
            if(deletedUser == null)
                 throw ( Object.assign(new Error("User not found .") , {status : 404}) );
          
+
+            
+
             //If user have an image then it will be delted only if all the operations above succedes .
             if(  deletedUser.imgPath != undefined ) {
              
                 unlink( deletedUser.imgPath , (err) => {
                     if (err)
-                    throw ( err ); //Debugging only , in userion such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
+                    throw ( err ); //Debugging only , in production such error does not need to propagate to API users , it needs to be logged locally since it is won't affect the API users . 
                 });
             
             }
 
-            req.logout(); // Logout a user after deleting there account .
+            req.logout(); // Logout a user after deleting their account .
 
             res.status(201).json(deletedUser);
         }

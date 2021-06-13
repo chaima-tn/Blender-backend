@@ -1,6 +1,25 @@
 
 const mongoose = require('mongoose');
+const Product = require("../models/Product");
 
+
+
+//Mongoose update options .  
+const updateOps = {
+    useFindAndModify : false ,
+    runValidators : true ,
+    new :true
+    };
+//Mongoose delete options .         
+const deleteOps  = {
+    useFindAndModify : false
+    };
+
+//Hook options .
+const hookOps = {
+     query : true ,
+     document : false 
+};
 
 const orderSchema = new mongoose.Schema({
     
@@ -53,5 +72,12 @@ const orderSchema = new mongoose.Schema({
     }
 
 });
+
+
+orderSchema.post('findOneAndRemove' , hookOps , async (deletedOrder) => {
+
+    await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id} , $inc : {quantity :  deletedOrder.quantity} }    , updateOps).exec();//Pull the removed order from the product list of orders . 
+
+})
 
 module.exports = mongoose.model('Order', orderSchema);

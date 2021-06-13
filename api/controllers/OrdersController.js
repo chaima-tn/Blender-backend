@@ -236,15 +236,13 @@ module.exports.delete = (req , res , next) => {
     
 
 
-            const deletedOrder = await Order.findByIdAndRemove( orderId , deleteOps ).exec();
+            const deletedOrder = await Order.findOneAndRemove( { _id : orderId } , deleteOps ).exec();
 
            if(deletedOrder == null)
                 throw ( Object.assign(new Error("Order not found .") , {status : 404}) );
-
-            await Product.updateOne({_id : deletedOrder.product} , {$pull : {orders : deletedOrder._id} , $inc : {quantity :  deletedOrder.quantity} }    , updateOps).exec();//Pull the removed order from the product list of orders . 
-
+        
             await Cart.updateOne({_id : deletedOrder.cart} , {$pull : {orders : deletedOrder._id}  ,  $inc : {totalPrice :  - deletedOrder.totalPrice } } , updateOps).exec();//Pull the removed order from the cart list of orders . 
-
+           
            
             res.status(201).json(deletedOrder);
         }

@@ -121,14 +121,14 @@ module.exports.delete = (req , res , next) => {
             if( ! carts.includes(cartId) )
                 throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );    
     
-            const deletedCart = await Cart.findByIdAndRemove( cartId , deleteOps ).exec();
+            const deletedCart = await Cart.findOneAndRemove( { _id : cartId } , deleteOps ).exec();
 
            if(deletedCart == null)
                 throw ( Object.assign(new Error("Cart not found .") , {status : 404}) );
 
             
-            await Customer.updateOne({_id : deletedCart.customer} , {$pull : {carts : deletedCart._id}  } , updateOps).exec();//Pull the removed cart from the cart list of the customer . 
-
+                await Customer.updateOne({_id : deletedCart.customer} , {$pull : {carts : deletedCart._id}  } , updateOps).exec();//Pull the removed cart from the cart list of the customer . 
+            
 
             res.status(201).json(deletedCart);
         }

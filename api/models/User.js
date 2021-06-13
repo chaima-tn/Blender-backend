@@ -1,6 +1,25 @@
 
 const mongoose = require('mongoose');
 const  plugin = require('passport-local-mongoose');
+const Store = require('../models/Store');
+const Cart = require("../models/Cart");
+
+
+//Mongoose update options .  
+const updateOps = {
+    useFindAndModify : false ,
+    runValidators : true ,
+    new :true
+    };
+//Mongoose delete options .         
+const deleteOps  = {
+    useFindAndModify : false
+    };
+//Hook options .
+const hookOps = {
+    query : true ,
+    document : false 
+};
 
 const userSchema = new  mongoose.Schema({
     
@@ -130,6 +149,19 @@ const userSchema = new  mongoose.Schema({
             
         }
     } 
+});
+
+
+userSchema.post('findOneAndRemove' , hookOps , async (doc) => {
+
+   if( doc.role === 'owner' && doc.store != undefined ) 
+    await Store.findOneAndRemove( { _id : doc.store } , deleteOps ).exec(); 
+   else if (doc.role === 'customer' && doc.carts.length > 0)
+    await doc.carts.forEach( async (id) => {
+        await Cart.findOneAndRemove( { _id : id } , deleteOps).exec(); 
+    } );
+  
+
 });
 
 userSchema.plugin(plugin , {usernameQueryFields : ['email']});

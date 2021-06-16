@@ -48,7 +48,7 @@ module.exports.getAll = (req,res,next) => {
 
             }
 
-         const orders =  await Order.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('product cart ',"-__v").lean().exec() ;
+         const orders =  await Order.find( querry ).skip( pageSize * pageNum ).limit( pageSize ).select("-__v").populate('product cart',"-__v").populate({ path: 'cart', populate: { path: 'customer' }}).lean().exec() ;
          res.status(200).json(orders);
          
          }
